@@ -49,7 +49,7 @@
     var html = '<button type="button" class="chip" data-g="">All genres</button>';
     list.forEach(function (g, i) {
       html += '<button type="button" class="chip' + (i >= 12 ? ' extra' : '') + '" data-g="' + esc(g) + '">' +
-        esc(g) + '<small>' + counts[g] + '</small></button>';
+        esc(g) + '</button>';
     });
     html += '<button type="button" class="chips-toggle" aria-expanded="false">more genres</button>';
     chipsEl.innerHTML = html;

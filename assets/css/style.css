@@ -685,7 +685,6 @@ select option { background: var(--paper-2); color: var(--ink); }
 }
 .chip:hover { border-color: var(--ink-faint); color: var(--ink); }
 .chip[aria-pressed="true"] { background: var(--oxblood); border-color: var(--oxblood); color: var(--on-accent); }
-.chip small { opacity: .7; margin-left: 3px; font-size: .85em; }
 .chips-toggle { appearance: none; border: 0; background: none; font: inherit; color: var(--oxblood); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-size: 1rem; padding: 3px 6px; }
 
 .results-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 26px 0 18px; flex-wrap: wrap; }
