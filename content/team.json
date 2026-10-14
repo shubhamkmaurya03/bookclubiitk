@@ -140,7 +140,20 @@
           "photo": ""
         }
       ],
-      "secretaries": []
+      "secretaries": [
+        {
+          "name": "Nayana S Pujar",
+          "photo": ""
+        },
+        {
+          "name": "Nideesh H",
+          "photo": ""
+        },
+        {
+          "name": "Ilika Bera",
+          "photo": ""
+        }
+      ]
     },
     {
       "year": "2024-25",
