@@ -15,6 +15,8 @@ import os
 import re
 import sys
 
+from enrich_catalogue import is_english
+
 # Clean up the many spellings of each genre in the export.
 GENRE_MAP = {
     "fiction": "Fiction", "fictoin": "Fiction", "f": "Fiction",
@@ -111,7 +113,7 @@ def main():
         hit = cache.get(book["t"].strip().lower() + "|" + book["a"].strip().lower(), {})
         for source in ("openlibrary", "google"):
             extra = hit.get(source) or {}
-            if "d" not in book and extra.get("d"):
+            if "d" not in book and extra.get("d") and is_english(extra["d"]):
                 book["d"] = extra["d"]
                 book["ds"] = extra.get("src", "")
                 enriched += 1

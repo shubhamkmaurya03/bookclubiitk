@@ -70,6 +70,17 @@ def authors_match(ours, theirs):
     return False
 
 
+# A few common words per language, enough to spot a blurb that isn't in English.
+_EN = set("the and of to a in is his her that with for was on as by it an".split())
+_OTHER = set("el la los las que y del por una le les et des du une der die und das ist não com uma para il che".split())
+
+
+def is_english(text):
+    words = re.findall(r"[a-zà-ÿ]+", text.lower())
+    other = sum(w in _OTHER for w in words)
+    return other < 3 or other <= sum(w in _EN for w in words)
+
+
 def clean_description(d):
     if isinstance(d, dict):
         d = d.get("value", "")
@@ -81,7 +92,7 @@ def clean_description(d):
     d = " ".join(d.split())
     if len(d) > 1400:
         d = d[:1400].rsplit(" ", 1)[0] + "…"
-    return d if len(d) >= 40 else ""
+    return d if len(d) >= 40 and is_english(d) else ""
 
 
 def get_json(url, retries=4):
@@ -167,7 +178,8 @@ def main():
         hit = cache.get(key_for(b), {})
         got = {}
         for src in ("openlibrary", "google"):
-            got.update({k: v for k, v in (hit.get(src) or {}).items() if k in ("d", "i")})
+            got.update({k: v for k, v in (hit.get(src) or {}).items()
+                        if k == "i" or (k == "d" and is_english(v))})
         return (not b.get("d") and "d" not in got) or (not b.get("i") and "i" not in got)
 
     todo = [b for b in books if (not b.get("d") or not b.get("i"))]
