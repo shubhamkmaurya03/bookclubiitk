@@ -1,0 +1,74 @@
+{
+  "council": "Media and Cultural Council · Students’ Gymkhana",
+  "footer_text": "Book Club, under the Media and Cultural Council of the Students’ Gymkhana, IIT Kanpur.",
+  "timings": {
+    "weekdays": "9 pm – 10 pm",
+    "weekends": "9 pm – 11 pm",
+    "location": "Book Club, New SAC, Room Number 104, OAT"
+  },
+  "socials": {
+    "instagram": "https://www.instagram.com/bookclub_iitk/",
+    "facebook": "https://www.facebook.com/bookclub.iitk/",
+    "discord": "https://discord.gg/CWP2duEnS6"
+  },
+  "form_email": "iitkbookclub@gmail.com",
+  "home": {
+    "lede": "Whatever may be your reason for wanting to read, we are committed to helping you get hold of the book of your choice.",
+    "about": [
+      "People read for various reasons. Some read to broaden their perspective of the world and learn new things, some read to learn how to articulate their thoughts, some read to get inspiration, some read to get their mind free and see faraway places through the eye of their mind, some read to relax their mind after a tiring day full of hard work, deadlines and reports, while some read just for fun.",
+      "Whatever may be your reason for wanting to read, we at the SAC Book Club are committed to helping you get hold of the book of your choice. It is our goal to provide a definitive reading experience to the members of IIT Kanpur, be it in procuring books, indexing them for easy access, making them available for reading or in letting you review them and see reviews others have made.",
+      "The SAC Book Club or simply the Book Club comes under the Media and Cultural Council of the Students’ Gymkhana. It is maintained and operated by a team of three coordinators and twenty five secretaries, working on a completely voluntary basis.",
+      "During the semesters, the Club opens 7 days a week. (one hour from Mon-Thurs, two hours from Fri-Sun)",
+      "In order to cater to all tastes, we maintain a diverse collection of books, classified under:"
+    ],
+    "genres": [
+      "Fiction",
+      "Non-Fiction",
+      "Science Fiction",
+      "Fantasy",
+      "Classics",
+      "Poetry",
+      "Drama",
+      "Collections",
+      "Comics",
+      "Popular Science",
+      "Self Help",
+      "Romance",
+      "Biographies",
+      "Autobiographies",
+      "Bengali",
+      "Hindi"
+    ],
+    "signoff": "Do drop in and see us sometime!"
+  },
+  "quotes": {
+    "home": {
+      "text": "There is no friend as loyal as a book.",
+      "author": "Ernest Hemingway"
+    },
+    "rules": {
+      "text": "A book is a dream that you hold in your hand.",
+      "author": "Neil Gaiman"
+    },
+    "catalogue": {
+      "text": "So many books, so little time.",
+      "author": "Frank Zappa"
+    },
+    "request": {
+      "text": "A room without books is like a body without a soul.",
+      "author": "Marcus Tullius Cicero"
+    },
+    "blogs": {
+      "text": "There is no friend as loyal as a book.",
+      "author": "Ernest Hemingway"
+    },
+    "contact": {
+      "text": "No two persons ever read the same book.",
+      "author": "Edmund Wilson"
+    },
+    "mellifluous": {
+      "text": "There is no friend as loyal as a book.",
+      "author": "Ernest Hemingway"
+    }
+  }
+}

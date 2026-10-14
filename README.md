@@ -1,47 +1,66 @@
 # Book Club, IIT Kanpur — website
 
-A fully static site: plain HTML, one stylesheet and two small scripts. It has no build step, no server code and no frameworks, so it can be uploaded as-is to `iitk.ac.in/bookclub/`.
+A static website: plain HTML, CSS and JavaScript, with no server code, which suits the IITK web server.
+Content is kept in simple files and edited through an **admin panel**. Each save rebuilds the site automatically.
+
+- **Live preview:** https://shubhamkmaurya03.github.io/bookclubiitk/
+- **Admin panel:** https://shubhamkmaurya03.github.io/bookclubiitk/admin/ (see [ADMIN-GUIDE.md](ADMIN-GUIDE.md))
+- **Official site:** https://www.iitk.ac.in/bookclub/ (uploaded by hand with WinSCP, see below)
+
+## How it works
 
 ```
-index.html  rules.html  catalogue.html  request.html  blogs.html  contact.html  mellifluous.html  404.html
-blog1.html … blog6.html, "The Fault in Our Stars.html", "Notes from Underground.html"   (old URLs kept)
-assets/css/style.css     all styling (light + dark theme)
-assets/js/main.js        theme toggle, mobile menu, team tabs
-assets/js/catalogue.js   catalogue search (runs in the browser)
-assets/img/              logo, favicons, book covers, team photos
-data/catalogue.json      public catalogue data (no member details)
-tools/build_catalogue.py regenerates data/catalogue.json
+ admin panel ──save──▶ content/ on main ──GitHub Action──▶ tools/build_site.py ──▶ "site" branch
+ (coordinators)          (blogs, team, rules…)                                       │
+                                                                                     ├─▶ GitHub Pages (preview)
+                                                                                     └─▶ site.zip ──WinSCP──▶ iitk.ac.in/bookclub
 ```
 
-## Preview locally
-```
-python3 -m http.server 8000
-```
-Then open http://127.0.0.1:8000. Opening the files directly with `file://` works too, except for the catalogue, which needs a server to load its data.
+| Folder | What it holds |
+|---|---|
+| `content/blogs/*.md` | One file per blog post (details at the top, review text below) |
+| `content/team.json` | Current team and past teams |
+| `content/rules.json` | Rules page and fines table |
+| `content/mellifluous.json` | Magazine editions (newest first) |
+| `content/site.json` | Timings, location, socials, home page text, quotes |
+| `assets/` | Stylesheet, scripts, images. `assets/uploads/` is where the admin panel puts new photos |
+| `data/catalogue.json` | Catalogue data, built by `tools/build_catalogue.py` |
+| `admin/` | The admin panel (Sveltia CMS) and its form definitions (`config.yml`) |
+| `tools/` | Build scripts |
+| `.github/workflows/publish.yml` | Rebuilds and publishes the site on every change |
 
-## Common updates
+## One-time GitHub setup
 
-**Update the catalogue.** Export `data_updated.json` as before, then run:
+1. **Settings → Pages:** Source = *Deploy from a branch*, Branch = **`site`**, folder `/ (root)`.
+   The `site` branch is created by the first run of the workflow.
+2. **Settings → Actions → General → Workflow permissions:** select *Read and write permissions*.
+3. **Settings → Collaborators:** add each coordinator's GitHub account (they should turn on two-factor authentication).
+
+## Publishing to iitk.ac.in
+
+1. After a change, wait for the green tick on the latest commit (Actions tab, about 2 minutes).
+2. Download https://github.com/shubhamkmaurya03/bookclubiitk/archive/refs/heads/site.zip and unzip it.
+3. Upload the **contents** of the unzipped folder to the `bookclub` folder with WinSCP, replacing existing files.
+   You can skip the `admin/` folder, since the admin panel is used from GitHub Pages.
+
+## Updating the catalogue
+
+The library export (`data_updated.json`) contains member names and IDs, so it must **never** be committed
+(it is in `.gitignore`) or uploaded. On your own computer:
+
 ```
-python3 tools/build_catalogue.py path/to/data_updated.json
+python3 tools/build_catalogue.py path/to/data_updated.json      # writes data/catalogue.json
+python3 tools/enrich_catalogue.py openlibrary                   # optional: fill missing descriptions/covers
+GOOGLE_BOOKS_API_KEY=... python3 tools/enrich_catalogue.py google
+python3 tools/build_catalogue.py path/to/data_updated.json      # merge them in
 ```
-Upload the new `data/catalogue.json`. **Do not upload `data_updated.json` itself**, because it contains member names and IDs. Remove the old copy from the server too.
+Then commit and push `data/catalogue.json`.
 
-**Add a blog post.**
-1. Copy an existing post (e.g. `blog6.html`) to `blog7.html`.
-2. Change the title, date, reviewer, cover image and the `<p>` paragraphs.
-3. Put the cover in `assets/img/books/` (about 420 px wide).
-4. Add a card to `blogs.html`. Put it in the "Latest review" spot if it's the newest.
-5. Optionally add it to "Latest reviews" on `index.html`.
-6. Update the previous/next links at the bottom of the neighbouring posts.
+## Building locally
 
-**Change the team.** Edit the `<figure class="person">` blocks in `contact.html`. Before adding photos, resize them and strip their metadata, since phone photos often carry GPS location:
 ```
-convert photo.jpg -auto-orient -strip -resize '480x480^' -quality 80 assets/img/team/name.jpg
+pip install -r tools/requirements.txt
+python3 tools/build_site.py
+python3 -m http.server 8000 --directory _site      # open http://127.0.0.1:8000
 ```
-
-**Change timings or quotes.** These are plain text inside each page. Search for "9 pm" or "blockquote".
-
-## Notes
-- Forms post to `https://formspree.io/iitkbookclub@gmail.com`, the same endpoint as the old site.
-- Fonts come from Google Fonts (Cormorant Garamond and EB Garamond). Catalogue covers load from Goodreads' image CDN. A typeset cover appears when one is missing.
+The build refuses to run if any image in `assets/` contains GPS location data.

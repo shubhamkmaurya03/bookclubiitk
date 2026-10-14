@@ -1,0 +1,48 @@
+{
+  "intro": "A few simple rules that keep the shelves full and the books in good shape for everyone.",
+  "sections": [
+    {
+      "title": "Joining the Club",
+      "rules": [
+        "Membership of the Book Club is restricted to students, faculty and staff of IIT Kanpur.",
+        "Membership is free of charge. To register, please visit the Book Club with your ID card."
+      ]
+    },
+    {
+      "title": "Issues and Returns",
+      "rules": [
+        "To issue a book, the member has to come to the Book Club in New SAC (Room Number 104, OAT) along with their Institute ID Card. The book will be issued for a period of two weeks, after which, there will be a fine of ₹ 1 per day for the first 16 days, then ₹ 2 per day for the following month, ₹ 3 per day for the following month, and so on.",
+        "The member also has the opportunity to renew the book after the allotted period of two weeks is over, subject to the condition that the book has not been placed on hold by someone else.",
+        "By registering for a membership, the member agrees to let the book club send reminders for overdue books.",
+        "Do not issue books in bad physical condition. We reserve the right to not issue any book.",
+        "Books can be placed on hold. Once a book placed on hold by you is returned we will contact you so that you can issue the book."
+      ]
+    },
+    {
+      "title": "Defaulters",
+      "rules": [
+        "If a member loses or damages a book beyond repair, he/she will either have to replace the book or pay 1.2 times the cost of the book along with a fine till that day from the day of issuance date as calculated by the team.",
+        "All books issued must be returned by the end of the semester under any circumstances."
+      ]
+    }
+  ],
+  "fines": [
+    {
+      "period": "First 16 days after the two weeks",
+      "fine": "₹ 1 / day"
+    },
+    {
+      "period": "The following month",
+      "fine": "₹ 2 / day"
+    },
+    {
+      "period": "The month after that",
+      "fine": "₹ 3 / day"
+    },
+    {
+      "period": "And so on…",
+      "fine": "+ ₹ 1 / day each month"
+    }
+  ],
+  "note": "You are not allowed to register for the new semester until and unless your dues are clear with the book club. So we advise you to clear your dues with us, if any, to prevent unnecessary problems during the time of registration."
+}

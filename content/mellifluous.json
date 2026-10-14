@@ -1,0 +1,18 @@
+{
+  "editions": [
+    {
+      "title": "Second Edition",
+      "description": "We present the second edition of our annual magazine **Mellifluous**, created by and for book lovers. Within these pages lie thoughtful reflections, imaginative stories and a celebration of the quiet magic that books bring into our lives.",
+      "flipbook": "https://heyzine.com/flip-book/e1838ddfbd.html",
+      "cover": "assets/img/mellifluous/edition-2.jpg",
+      "home_blurb": "Created by and for book lovers. Within these pages lie thoughtful reflections, imaginative stories and a celebration of the quiet magic that books bring into our lives."
+    },
+    {
+      "title": "First Edition",
+      "description": "",
+      "flipbook": "https://heyzine.com/flip-book/67b060322a.html",
+      "cover": "assets/img/mellifluous/edition-1.jpg",
+      "home_blurb": ""
+    }
+  ]
+}

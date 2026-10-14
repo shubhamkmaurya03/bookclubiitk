@@ -1,0 +1,44 @@
+# Rebuilds the website whenever something is saved to main (by the admin panel or a push)
+# and publishes the result to the `site` branch. GitHub Pages serves that branch, and the
+# IITK copy is uploaded from it: download
+#   https://github.com/shubhamkmaurya03/bookclubiitk/archive/refs/heads/site.zip
+name: Build and publish website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install -r tools/requirements.txt
+
+      - name: Build site
+        run: python tools/build_site.py
+
+      - name: Publish to the site branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: site
+          publish_dir: ./_site
+          force_orphan: true
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_message: "Publish website"

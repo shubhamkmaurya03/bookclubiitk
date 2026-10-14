@@ -6,3 +6,7 @@ past team/
 
 __pycache__/
 .DS_Store
+
+# Built website (published to the "site" branch by GitHub Actions)
+_site/
+.vscode/

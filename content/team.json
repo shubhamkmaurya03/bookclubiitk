@@ -1,0 +1,388 @@
+{
+  "coordinators": [
+    {
+      "name": "Nayana S Pujar",
+      "photo": "assets/img/team/nayana.jpg"
+    },
+    {
+      "name": "Nideesh H",
+      "photo": "assets/img/team/nideesh.jpg"
+    },
+    {
+      "name": "Ilika Bera",
+      "photo": "assets/img/team/ilika.jpg"
+    }
+  ],
+  "secretaries": [
+    {
+      "name": "Adrija Baisya",
+      "photo": "assets/img/team/adrija.jpg"
+    },
+    {
+      "name": "Ankur Ghosh",
+      "photo": "assets/img/team/ankur.jpg"
+    },
+    {
+      "name": "Deepak Bihani",
+      "photo": "assets/img/team/deepak.jpg"
+    },
+    {
+      "name": "Gauri",
+      "photo": "assets/img/team/gauri.jpg"
+    },
+    {
+      "name": "Ishan Bajpai",
+      "photo": "assets/img/team/ishan.jpg"
+    },
+    {
+      "name": "Nupur Sehgal",
+      "photo": "assets/img/team/nupur.jpg"
+    },
+    {
+      "name": "Rithish Balaji",
+      "photo": "assets/img/team/rithish.jpg"
+    },
+    {
+      "name": "Sathvik Narayanan",
+      "photo": "assets/img/team/sathvik.jpg"
+    },
+    {
+      "name": "Shubham",
+      "photo": "assets/img/team/shubham.jpg"
+    },
+    {
+      "name": "Srinidhi Ale",
+      "photo": "assets/img/team/srinidhi.jpg"
+    },
+    {
+      "name": "Srivanth Guntha",
+      "photo": "assets/img/team/srivanth.jpg"
+    },
+    {
+      "name": "Tanishk Meena",
+      "photo": "assets/img/team/tanishk.jpg"
+    },
+    {
+      "name": "Vaidehi Shetye",
+      "photo": "assets/img/team/vaidehi.jpg"
+    },
+    {
+      "name": "Vinayak Majumder",
+      "photo": "assets/img/team/vinayak.jpg"
+    },
+    {
+      "name": "Amirtha Sreya",
+      "photo": "assets/img/team/amirtha.jpg"
+    },
+    {
+      "name": "Ananya Iyer",
+      "photo": "assets/img/team/ananya.jpg"
+    },
+    {
+      "name": "Anvayee Tambe",
+      "photo": "assets/img/team/anvayee.jpg"
+    },
+    {
+      "name": "Chethana",
+      "photo": "assets/img/team/chethana.jpg"
+    },
+    {
+      "name": "Darsh Kedia",
+      "photo": "assets/img/team/darsh.jpg"
+    },
+    {
+      "name": "Deshmukh Kundan",
+      "photo": "assets/img/team/kundan.jpg"
+    },
+    {
+      "name": "Kushagra",
+      "photo": "assets/img/team/kushagra.jpg"
+    },
+    {
+      "name": "Pratham Arora",
+      "photo": "assets/img/team/prathamarora.jpg"
+    },
+    {
+      "name": "Pugazhendi",
+      "photo": "assets/img/team/pugazhendi.jpg"
+    },
+    {
+      "name": "Rishikesh J",
+      "photo": "assets/img/team/rishikesh.jpg"
+    },
+    {
+      "name": "Rushil Kumar",
+      "photo": "assets/img/team/rushil.jpg"
+    },
+    {
+      "name": "Sanath Koundinya",
+      "photo": "assets/img/team/sanath.jpg"
+    },
+    {
+      "name": "Hari Chandana",
+      "photo": "assets/img/team/yharichandana.jpg"
+    }
+  ],
+  "past": [
+    {
+      "year": "2024-25",
+      "coordinators": [
+        {
+          "name": "Soumya Yerukonda",
+          "photo": "assets/img/past/soumyay.jpg"
+        },
+        {
+          "name": "Shubham Maurya",
+          "photo": "assets/img/past/shubham-maurya.jpg"
+        },
+        {
+          "name": "Vishakha Goyal",
+          "photo": "assets/img/past/vishakagoy.jpg"
+        }
+      ],
+      "secretaries": [
+        {
+          "name": "Dhriti Barnwal",
+          "photo": ""
+        },
+        {
+          "name": "Harshit Meena",
+          "photo": ""
+        },
+        {
+          "name": "Himanshu Mahale",
+          "photo": ""
+        },
+        {
+          "name": "Mahi Mittal",
+          "photo": ""
+        },
+        {
+          "name": "Muskan Yadav",
+          "photo": ""
+        },
+        {
+          "name": "Namo",
+          "photo": ""
+        },
+        {
+          "name": "Om Singh",
+          "photo": ""
+        },
+        {
+          "name": "Palak Vadher",
+          "photo": ""
+        },
+        {
+          "name": "Parth Aryabhatt",
+          "photo": ""
+        },
+        {
+          "name": "Pragya Pathak",
+          "photo": ""
+        },
+        {
+          "name": "Priyanshi Agarwal",
+          "photo": ""
+        },
+        {
+          "name": "Rudransh Verma",
+          "photo": ""
+        },
+        {
+          "name": "Sanjana S",
+          "photo": ""
+        },
+        {
+          "name": "Shreehari P",
+          "photo": ""
+        },
+        {
+          "name": "Siddharth Jaisawal",
+          "photo": ""
+        },
+        {
+          "name": "Sonali Dubey",
+          "photo": ""
+        },
+        {
+          "name": "Srujan Bhirud",
+          "photo": ""
+        },
+        {
+          "name": "Tanvi M",
+          "photo": ""
+        },
+        {
+          "name": "Tavishi Maini",
+          "photo": ""
+        }
+      ]
+    },
+    {
+      "year": "2023-24",
+      "coordinators": [
+        {
+          "name": "Abhinav Garg",
+          "photo": "assets/img/past/abhinavg.jpg"
+        },
+        {
+          "name": "Avni Maheshwari",
+          "photo": "assets/img/past/anvi.jpg"
+        },
+        {
+          "name": "Jahnvi Singh",
+          "photo": "assets/img/past/jahnvi-singh.jpg"
+        }
+      ],
+      "secretaries": [
+        {
+          "name": "Aabha",
+          "photo": ""
+        },
+        {
+          "name": "Devansh Bansal",
+          "photo": ""
+        },
+        {
+          "name": "Dhruv",
+          "photo": ""
+        },
+        {
+          "name": "Khushi Tiwari",
+          "photo": ""
+        },
+        {
+          "name": "Krishang",
+          "photo": ""
+        },
+        {
+          "name": "Moni Dutt",
+          "photo": ""
+        },
+        {
+          "name": "Samhitha",
+          "photo": ""
+        },
+        {
+          "name": "Shrimi Agarwal",
+          "photo": ""
+        },
+        {
+          "name": "Shriya Garg",
+          "photo": ""
+        },
+        {
+          "name": "Sowmya Thottempudi",
+          "photo": ""
+        },
+        {
+          "name": "Vishakha Goyal",
+          "photo": ""
+        },
+        {
+          "name": "Yuvan Gorani",
+          "photo": ""
+        },
+        {
+          "name": "Yuvraj Singh",
+          "photo": ""
+        },
+        {
+          "name": "Shubham Maurya",
+          "photo": ""
+        },
+        {
+          "name": "Soumya Yerukonda",
+          "photo": ""
+        }
+      ]
+    },
+    {
+      "year": "2022-23",
+      "coordinators": [
+        {
+          "name": "Jahnvi Rochwani",
+          "photo": "assets/img/past/rochwani.jpg"
+        },
+        {
+          "name": "Gaurav Raj",
+          "photo": "assets/img/past/gauravr.jpg"
+        }
+      ],
+      "secretaries": []
+    },
+    {
+      "year": "2021-22",
+      "coordinators": [
+        {
+          "name": "Jiya Yadav",
+          "photo": ""
+        },
+        {
+          "name": "Soumya Lohani",
+          "photo": ""
+        },
+        {
+          "name": "Videeta Sharma",
+          "photo": ""
+        }
+      ],
+      "secretaries": []
+    },
+    {
+      "year": "2020-21",
+      "coordinators": [
+        {
+          "name": "Sanyam Khosla",
+          "photo": ""
+        },
+        {
+          "name": "Ragha Abhinaya",
+          "photo": ""
+        },
+        {
+          "name": "Deepak Choudhary",
+          "photo": ""
+        }
+      ],
+      "secretaries": []
+    },
+    {
+      "year": "2019-20",
+      "coordinators": [
+        {
+          "name": "Jayranjan Sharma",
+          "photo": ""
+        },
+        {
+          "name": "Yash Kumade",
+          "photo": ""
+        },
+        {
+          "name": "Yash Baheti",
+          "photo": ""
+        }
+      ],
+      "secretaries": []
+    },
+    {
+      "year": "2018-19",
+      "coordinators": [
+        {
+          "name": "Karan",
+          "photo": ""
+        },
+        {
+          "name": "Shashank",
+          "photo": ""
+        },
+        {
+          "name": "Yash Saxena",
+          "photo": ""
+        }
+      ],
+      "secretaries": []
+    }
+  ]
+}
