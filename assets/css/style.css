@@ -136,6 +136,7 @@ em, i { font-style: italic; }
 .topline span { font-variant: all-small-caps; letter-spacing: .14em; opacity: .85; }
 .topline .hours { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .topline .sep { font-style: normal; opacity: .6; }
+@media (max-width: 520px) { .topline .sep { display: none; } .topline .hours { column-gap: 14px; row-gap: 0; } }
 .topline .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); display: inline-block; }
 .topline .dot.open { background: #6fbf73; box-shadow: 0 0 0 3px rgba(111,191,115,.25); }
 @media (max-width: 720px) { .topline .council { display: none; } .topline .wrap { justify-content: center; padding-top: 6px; padding-bottom: 6px; } }
@@ -470,13 +471,19 @@ select option { background: var(--paper-2); color: var(--ink); }
   clip-path: polygon(0 0, 100% 22%, 100% 100%, 0 100%);
   border-radius: 2px;
 }
+.hero-grid > * { min-width: 0; }
 @media (max-width: 900px) {
   .hero-grid { grid-template-columns: 1fr; }
-  .shelf { height: 260px; overflow-x: auto; overflow-y: hidden; padding-top: 20px; scrollbar-width: none; }
-  .shelf::-webkit-scrollbar { display: none; }
+  .shelf { height: 260px; padding: 20px 8px 0; justify-content: center; overflow: hidden; }
+  .spine { flex: 0 1 var(--w); min-width: 30px; }
   .shelf-wrap { padding-top: 6px; }
 }
-@media (max-width: 520px) { .spine { --w: 40px; } .spine span { font-size: 1rem; } .bookend, .spine.tilt { display: none; } }
+@media (max-width: 520px) {
+  .shelf { height: 220px; gap: 3px; }
+  .spine span { font-size: .95rem; }
+  .bookend, .spine.tilt, .spine:nth-child(n+10) { display: none; }
+  .shelf-plank { margin: 0; }
+}
 
 /* stats band */
 .band { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--paper-2); }
@@ -539,7 +546,7 @@ select option { background: var(--paper-2); color: var(--ink); }
 .link-arrow svg { width: 16px; height: 16px; transition: transform .2s; }
 .link-arrow:hover svg { transform: translateX(4px); }
 
-.posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 40px 30px; }
+.posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 40px 30px; }
 .post-card { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
 .post-card:hover { color: var(--ink); }
 .post-cover {
@@ -628,6 +635,13 @@ select option { background: var(--paper-2); color: var(--ink); }
 .fine-table th, .fine-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); }
 .fine-table th { font-weight: 500; font-variant: all-small-caps; letter-spacing: .12em; color: var(--ink-soft); border-bottom-color: var(--rule); }
 .fine-table td:last-child { font-variant-numeric: lining-nums; white-space: nowrap; color: var(--oxblood); font-weight: 500; }
+@media (max-width: 560px) {
+  .rules-list li { padding-left: 2.3rem; }
+  .rules-list li::before { width: 1.8rem; }
+  .fine-table th, .fine-table td { padding: 8px 6px; }
+  .fine-table td:last-child { white-space: normal; }
+  .rules-section h2 { font-size: 1.75rem; gap: 10px; }
+}
 .notice {
   border: 1px solid var(--oxblood);
   border-left-width: 4px;
@@ -676,7 +690,7 @@ select option { background: var(--paper-2); color: var(--ink); }
 .results-bar .count { font-style: italic; color: var(--ink-soft); font-size: 1.1rem; }
 .results-bar .count b { font-style: normal; color: var(--ink); font-weight: 500; }
 
-.books { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
+.books { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 18px; }
 @media (max-width: 400px) { .books { grid-template-columns: 1fr; } }
 .book {
   display: grid;
@@ -884,7 +898,7 @@ select option { background: var(--paper-2); color: var(--ink); }
 .ledger-year .people.many .person figcaption { font-size: 1.1rem; }
 @media (max-width: 640px) { .ledger-year .people.many { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* past team: per-year secretaries toggle */
-.secs { margin-top: 20px; }
+.secs { margin-top: 22px; text-align: center; }
 .secs summary {
   list-style: none;
   cursor: pointer;
@@ -903,10 +917,8 @@ select option { background: var(--paper-2); color: var(--ink); }
   transition: border-color .2s, background .2s;
 }
 .secs summary::-webkit-details-marker { display: none; }
-.secs summary::after { content: "+"; font-variant: normal; font-size: 1.1em; line-height: 1; margin-left: .2em; transition: transform .25s; }
-.secs[open] summary::after { transform: rotate(45deg); }
 .secs summary:hover { border-color: var(--oxblood); background: var(--paper-3); }
-.secs summary small { color: var(--ink-faint); font-size: .95em; }
 .secs .when-open, .secs[open] .when-closed { display: none; }
 .secs[open] .when-open { display: inline; }
-.secs .people.many { margin-top: 22px; padding-top: 22px; border-top: 1px dashed var(--rule); }
+.secs .people.many { text-align: left; margin-top: 22px; padding-top: 22px; border-top: 1px dashed var(--rule); }
+.rating .src { font-variant: all-small-caps; letter-spacing: .08em; font-size: .95em; }

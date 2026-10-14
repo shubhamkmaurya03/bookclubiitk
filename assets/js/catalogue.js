@@ -138,7 +138,7 @@
     if (b.d) h += '<details><summary>About this book</summary><p>' + esc(b.d) + '</p>' +
       (b.ds ? '<p class="via">Description via ' + esc(b.ds) + '</p>' : '') + '</details>';
     h += '<div class="book-tags">';
-    if (b.r) h += '<span class="rating"><span class="stars" style="--pct:' + Math.min(100, b.r * 20) + '%" aria-hidden="true"></span>' + b.r.toFixed(1) + '<span class="sr"> out of 5</span></span>';
+    if (b.r) h += '<span class="rating" title="Goodreads rating"><span class="stars" style="--pct:' + Math.min(100, b.r * 20) + '%" aria-hidden="true"></span>' + b.r.toFixed(1) + '<span class="sr"> out of 5</span> <span class="src">Goodreads</span></span>';
     if (b.g) h += '<span class="tag">' + esc(b.g) + '</span>';
     h += b.o ? '<span class="avail out">Issued</span>' : '<span class="avail">On the shelf</span>';
     h += '</div></div></article>';
