@@ -1,4 +1,4 @@
-# Book Club, IIT Kanpur — website
+# Book Club IIT Kanpur — website
 
 A static website: plain HTML, CSS and JavaScript, with no server code, which suits the IITK web server.
 Content is kept in simple files and edited through an **admin panel**. Each save rebuilds the site automatically.

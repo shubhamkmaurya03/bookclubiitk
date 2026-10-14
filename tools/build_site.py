@@ -241,7 +241,7 @@ def footer(site, quote_key, extra_scripts=""):
     <div class="wrap">
       <div class="foot-grid">
         <div>
-          <div class="foot-brand"><img src="assets/img/bookclub-logo.png" alt="" width="46" height="46"><b>Book Club,<br>IIT Kanpur</b></div>
+          <div class="foot-brand"><img src="assets/img/bookclub-logo.png" alt="" width="46" height="46"><b>Book Club<br>IIT Kanpur</b></div>
           <p>{esc(site["footer_text"])}</p>
           {socials(site, "foot-social")}
         </div>
@@ -263,7 +263,7 @@ def footer(site, quote_key, extra_scripts=""):
         </div>
       </div>
       <div class="foot-base">
-        <span>© <span data-year>{datetime.date.today().year}</span> Book Club, IIT Kanpur</span>
+        <span>© <span data-year>{datetime.date.today().year}</span> Book Club IIT Kanpur</span>
       </div>
     </div>
   </footer>
@@ -399,7 +399,7 @@ def build_blogs(site, posts):
       </div>
     </section>
 """
-    page(site, "blogs.html", "Blogs - Book Club, IIT Kanpur", "Book reviews, reflections and stories from Book Club IIT Kanpur.",
+    page(site, "blogs.html", "Blogs - Book Club IIT Kanpur", "Book reviews, reflections and stories from Book Club IIT Kanpur.",
          "blogs.html", "blogs", body)
 
     for i, b in enumerate(posts):
@@ -509,7 +509,7 @@ def build_home(site, posts, editions, stats):
       <div class="wrap hero-grid">
         <div class="hero-copy">
           <span class="eyebrow">Welcome to the SAC Book Club</span>
-          <h1>Book Club, <em>IIT Kanpur</em></h1>
+          <h1>Book Club <em>IIT Kanpur</em></h1>
           <p class="lede">{esc(h.get("lede"))}</p>
           <form class="hero-search" action="catalogue.html" method="get" role="search">
             {I["search"]}
@@ -558,7 +558,7 @@ def build_home(site, posts, editions, stats):
       </div>
     </section>
 {reviews}{feature}"""
-    page(site, "index.html", "Home - Book Club, IIT Kanpur",
+    page(site, "index.html", "Home - Book Club IIT Kanpur",
          f"The SAC Book Club of IIT Kanpur: a free collection of {stats['books_round']} books run by students. "
          "Search the catalogue, request a book, read reviews and our magazine Mellifluous.",
          "index.html", "home", body)
@@ -613,8 +613,8 @@ def build_rules(site, rules):
       </aside>
     </section>
 """
-    page(site, "rules.html", "Rules - Book Club, IIT Kanpur",
-         "Membership, issue and return rules, fines and guidelines of the Book Club, IIT Kanpur.", "rules.html", "rules", body)
+    page(site, "rules.html", "Rules - Book Club IIT Kanpur",
+         "Membership, issue and return rules, fines and guidelines of Book Club IIT Kanpur.", "rules.html", "rules", body)
 
 
 # ------------------------------------------------------------------ catalogue
@@ -663,7 +663,7 @@ def build_catalogue(site, stats):
       <div class="more-wrap"><button class="btn ghost" id="more" type="button" hidden>Show more books</button></div>
     </section>
 """
-    page(site, "catalogue.html", "Catalogue - Book Club, IIT Kanpur", "Search the Book Club IIT Kanpur catalogue by title, author or genre.",
+    page(site, "catalogue.html", "Catalogue - Book Club IIT Kanpur", "Search the Book Club IIT Kanpur catalogue by title, author or genre.",
          "catalogue.html", "catalogue", body, '\n  <script src="assets/js/catalogue.js" defer></script>')
 
 
@@ -730,7 +730,7 @@ def build_request(site):
       </aside>
     </section>
 """
-    page(site, "request.html", "Request a Book - Book Club, IIT Kanpur", "Request a book you couldn't find in the Book Club IIT Kanpur catalogue.",
+    page(site, "request.html", "Request a Book - Book Club IIT Kanpur", "Request a book you couldn't find in the Book Club IIT Kanpur catalogue.",
          "request.html", "request", body)
 
 
@@ -853,7 +853,7 @@ def build_contact(site, team):
       </div>
     </section>
 """
-    page(site, "contact.html", "Contact Us - Book Club, IIT Kanpur", "Get in touch with the Book Club, IIT Kanpur, and meet the team.",
+    page(site, "contact.html", "Contact Us - Book Club IIT Kanpur", "Get in touch with Book Club IIT Kanpur and meet the team.",
          "contact.html", "contact", body)
 
 
@@ -878,7 +878,7 @@ def build_mellifluous(site, editions):
         <div class="flipbook-foot"><a class="link-arrow" href="{esc(url)}" target="_blank" rel="noopener">Open full screen {I["expand"]}</a></div>
       </article>""")
     body = f"""    <header class="page-head wrap">
-      <span class="eyebrow">The annual magazine of Book Club, IIT Kanpur</span>
+      <span class="eyebrow">The annual magazine of Book Club IIT Kanpur</span>
       <h1><em style="font-weight:500">Mellifluous</em></h1>
       <p>Created by and for book lovers. Turn the pages below.</p>
     </header>
@@ -899,7 +899,7 @@ def build_404(site):
       <p>We looked between the stacks but couldn’t find it. Try the <a href="index.html">home page</a> or search the <a href="catalogue.html">catalogue</a>.</p>
     </header>
 """
-    page(site, "404.html", "Page not found - Book Club, IIT Kanpur", "Page not found.", "", "catalogue", body)
+    page(site, "404.html", "Page not found - Book Club IIT Kanpur", "Page not found.", "", "catalogue", body)
 
 
 # ------------------------------------------------------------------ static files & images

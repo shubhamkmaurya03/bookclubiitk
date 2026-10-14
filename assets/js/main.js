@@ -1,4 +1,4 @@
-/* Book Club, IIT Kanpur — shared behaviour (no dependencies) */
+/* Book Club IIT Kanpur — shared behaviour (no dependencies) */
 (function () {
   var root = document.documentElement;
   root.classList.add("js");

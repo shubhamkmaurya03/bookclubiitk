@@ -62,8 +62,11 @@ def authors_match(ours, theirs):
         return True
     for name in theirs or []:
         their_tokens = {t for t in re.findall(r"[a-z]+", name.lower()) if len(t) > 2}
-        if ours_tokens & their_tokens:
-            return True
+        for a in ours_tokens:
+            for b in their_tokens:
+                # tolerate spelling variants such as Dostoevsky / Dostoyevsky
+                if a == b or (min(len(a), len(b)) >= 5 and difflib.SequenceMatcher(None, a, b).ratio() >= 0.85):
+                    return True
     return False
 
 
@@ -122,11 +125,11 @@ def lookup_openlibrary(book):
 
 
 def lookup_google(book, api_key):
-    q = f'intitle:"{book["t"]}"'
-    if book.get("a"):
-        q += f' inauthor:"{book["a"]}"'
+    # A plain keyword search finds far more books than intitle:/inauthor: (which need exact
+    # spellings); titles_match/authors_match below keep only real matches.
+    q = f'{book["t"]} {book.get("a", "")}'.strip()
     params = urllib.parse.urlencode({
-        "q": q, "maxResults": 5, "printType": "books", "key": api_key,
+        "q": q, "maxResults": 10, "printType": "books", "key": api_key,
         "fields": "items(volumeInfo(title,authors,description,imageLinks,infoLink))"})
     res = get_json("https://www.googleapis.com/books/v1/volumes?" + params)
     time.sleep(0.4)
