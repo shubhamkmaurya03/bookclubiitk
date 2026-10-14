@@ -1,0 +1,8 @@
+# Library export: contains member names and IDs. Never commit or upload it.
+data_updated.json
+
+# Raw photos may contain GPS location; only the processed copies in assets/img/ are published.
+past team/
+
+__pycache__/
+.DS_Store
