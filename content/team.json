@@ -143,15 +143,15 @@
       "secretaries": [
         {
           "name": "Nayana S Pujar",
-          "photo": ""
+          "photo": "assets/img/team/nayana.jpg"
         },
         {
           "name": "Nideesh H",
-          "photo": ""
+          "photo": "assets/img/team/nideesh.jpg"
         },
         {
           "name": "Ilika Bera",
-          "photo": ""
+          "photo": "assets/img/team/ilika.jpg"
         }
       ]
     },
@@ -309,7 +309,7 @@
         },
         {
           "name": "Vishakha Goyal",
-          "photo": ""
+          "photo": "assets/img/past/vishakagoy.jpg"
         },
         {
           "name": "Yuvan Gorani",
@@ -321,11 +321,11 @@
         },
         {
           "name": "Shubham Maurya",
-          "photo": ""
+          "photo": "assets/img/past/shubham-maurya.jpg"
         },
         {
           "name": "Soumya Yerukonda",
-          "photo": ""
+          "photo": "assets/img/past/soumyay.jpg"
         },
         {
           "name": "Arpita Chaurasia",
@@ -345,7 +345,48 @@
           "photo": "assets/img/past/gauravr.jpg"
         }
       ],
-      "secretaries": []
+      "secretaries": [
+        {
+          "name": "Aashi Srivastava",
+          "photo": ""
+        },
+        {
+          "name": "Tejas Goyal",
+          "photo": ""
+        },
+        {
+          "name": "Diptanshu",
+          "photo": ""
+        },
+        {
+          "name": "Sristhi",
+          "photo": ""
+        },
+        {
+          "name": "Om",
+          "photo": ""
+        },
+        {
+          "name": "Mudit Sengar",
+          "photo": ""
+        },
+        {
+          "name": "Manas Pandey",
+          "photo": ""
+        },
+        {
+          "name": "Abhinav Garg",
+          "photo": "assets/img/past/abhinavg.jpg"
+        },
+        {
+          "name": "Avni Maheshwari",
+          "photo": "assets/img/past/anvi.jpg"
+        },
+        {
+          "name": "Jahnvi Singh",
+          "photo": "assets/img/past/jahnvi-singh.jpg"
+        }
+      ]
     },
     {
       "year": "2021-22",
