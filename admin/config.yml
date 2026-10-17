@@ -1,0 +1,190 @@
+# Admin panel (Sveltia CMS) for the Book Club website.
+# Every "Save" here becomes a commit on the main branch; GitHub Actions then rebuilds the site.
+
+backend:
+  name: github
+  repo: shubhamkmaurya03/bookclubiitk
+  branch: main
+  commit_messages:
+    create: "Add {{collection}} “{{slug}}” (via admin)"
+    update: "Update {{collection}} “{{slug}}” (via admin)"
+    delete: "Delete {{collection}} “{{slug}}” (via admin)"
+    uploadMedia: "Upload “{{path}}” (via admin)"
+    deleteMedia: "Delete “{{path}}” (via admin)"
+
+site_url: https://shubhamkmaurya03.github.io/bookclubiitk/
+display_url: https://shubhamkmaurya03.github.io/bookclubiitk/
+logo_url: ../assets/img/bookclub-logo.png
+
+# Uploaded photos and covers go here. They are converted to WebP and resized in the
+# browser before upload; the build also re-encodes them, so no location data is published.
+media_folder: assets/uploads
+public_folder: /assets/uploads
+media_libraries:
+  default:
+    config:
+      max_file_size: 15000000
+      transformations:
+        raster_image:
+          format: webp
+          quality: 82
+          width: 1400
+          height: 1400
+
+collections:
+  # ------------------------------------------------------------------ blogs
+  - name: blogs
+    label: Blog posts
+    label_singular: Blog post
+    description: Book reviews shown on the Blogs page. The newest date appears first.
+    folder: content/blogs
+    create: true
+    delete: true
+    extension: md
+    format: frontmatter
+    slug: "{{book_title}}"
+    summary: "{{book_title}} — {{reviewer}}"
+    sortable_fields: [date, book_title, reviewer]
+    fields:
+      - { label: Page heading, name: title, widget: string, hint: "e.g. White Nights by Fyodor Dostoevsky" }
+      - { label: Book title, name: book_title, widget: string }
+      - { label: Book author, name: book_author, widget: string }
+      - { label: Reviewed by, name: reviewer, widget: string }
+      - { label: Date, name: date, widget: datetime, time_format: false, format: "YYYY-MM-DD", hint: "Only the month and year are shown on the site." }
+      - { label: Reading time (minutes), name: read_minutes, widget: number, value_type: int, min: 1, default: 3 }
+      - { label: Book cover, name: cover, widget: image, hint: "A portrait (tall) image of the book cover." }
+      - label: Review
+        name: body
+        widget: markdown
+        buttons: [bold, italic, link, quote, bulleted-list, numbered-list]
+        editor_components: []
+        hint: "A paragraph written entirely inside “curly quotes” is shown as a large pull quote."
+      - { label: Hide from the website (draft), name: draft, widget: boolean, default: false, required: false }
+      - { label: Page file name, name: page, widget: string, required: false, hint: "Leave empty for new posts. Older posts keep their original address (e.g. blog1.html)." }
+
+  # ------------------------------------------------------------------ club pages
+  - name: club
+    label: Club pages
+    description: Team, rules, magazine and site-wide details.
+    files:
+      - name: team
+        label: Team
+        file: content/team.json
+        description: Names are sorted A–Z automatically. Anyone without a photo is shown with their initials.
+        fields:
+          - label: Current coordinators
+            name: coordinators
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { label: Name, name: name, widget: string }
+              - { label: Photo, name: photo, widget: image, required: false }
+          - label: Current secretaries
+            name: secretaries
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { label: Name, name: name, widget: string }
+              - { label: Photo, name: photo, widget: image, required: false }
+          - label: Past teams
+            name: past
+            widget: list
+            summary: "{{fields.year}}"
+            hint: "At the end of a tenure, add a new year here and move the outgoing team into it."
+            fields:
+              - { label: Year, name: year, widget: string, hint: "Like 2025-26" }
+              - label: Coordinators
+                name: coordinators
+                widget: list
+                summary: "{{fields.name}}"
+                fields:
+                  - { label: Name, name: name, widget: string }
+                  - { label: Photo, name: photo, widget: image, required: false }
+              - label: Secretaries
+                name: secretaries
+                widget: list
+                required: false
+                summary: "{{fields.name}}"
+                fields:
+                  - { label: Name, name: name, widget: string }
+                  - { label: Photo, name: photo, widget: image, required: false }
+
+      - name: mellifluous
+        label: Mellifluous
+        file: content/mellifluous.json
+        fields:
+          - label: Editions
+            name: editions
+            widget: list
+            summary: "{{fields.title}}"
+            hint: "Keep the newest edition at the top. It is also featured on the home page."
+            fields:
+              - { label: Title, name: title, widget: string, hint: "e.g. Third Edition" }
+              - { label: Description, name: description, widget: text, required: false, hint: "Shown above the flipbook. **bold** and *italics* work." }
+              - { label: Flipbook link (Heyzine), name: flipbook, widget: string, hint: "e.g. https://heyzine.com/flip-book/xxxxxxxx.html" }
+              - { label: Cover image, name: cover, widget: image }
+              - { label: Home page text, name: home_blurb, widget: text, required: false, hint: "Short text next to the cover on the home page." }
+
+      - name: rules
+        label: Rules
+        file: content/rules.json
+        fields:
+          - { label: Introduction, name: intro, widget: text }
+          - label: Sections
+            name: sections
+            widget: list
+            summary: "{{fields.title}}"
+            fields:
+              - { label: Section title, name: title, widget: string }
+              - { label: Rules, name: rules, widget: list, field: { label: Rule, name: rule, widget: text } }
+          - label: Fines table
+            name: fines
+            widget: list
+            summary: "{{fields.period}}: {{fields.fine}}"
+            hint: "Shown under the first rule that mentions a fine."
+            fields:
+              - { label: Overdue period, name: period, widget: string }
+              - { label: Fine, name: fine, widget: string }
+          - { label: Please note box, name: note, widget: text, required: false }
+
+      - name: site
+        label: Timings, contact & home page
+        file: content/site.json
+        fields:
+          - { label: Council line (top of every page), name: council, widget: string }
+          - { label: Footer text, name: footer_text, widget: text }
+          - label: Timings
+            name: timings
+            widget: object
+            fields:
+              - { label: Weekdays (Mon – Thu), name: weekdays, widget: string }
+              - { label: Weekends (Fri – Sun), name: weekends, widget: string }
+              - { label: Location, name: location, widget: string }
+          - label: Social links
+            name: socials
+            widget: object
+            fields:
+              - { label: Instagram, name: instagram, widget: string, required: false }
+              - { label: Facebook, name: facebook, widget: string, required: false }
+              - { label: Discord, name: discord, widget: string, required: false }
+          - { label: Email that receives the forms, name: form_email, widget: string }
+          - label: Home page
+            name: home
+            widget: object
+            fields:
+              - { label: Intro line, name: lede, widget: text }
+              - { label: About us paragraphs, name: about, widget: list, field: { label: Paragraph, name: paragraph, widget: text } }
+              - { label: Genres listed, name: genres, widget: list, field: { label: Genre, name: genre, widget: string } }
+              - { label: Sign-off line, name: signoff, widget: string }
+          - label: Quotes (bottom of each page)
+            name: quotes
+            widget: object
+            collapsed: true
+            fields:
+              - { label: Home, name: home, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Rules, name: rules, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Catalogue, name: catalogue, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Request a Book, name: request, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Blogs, name: blogs, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Contact Us, name: contact, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Mellifluous, name: mellifluous, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
