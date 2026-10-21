@@ -777,6 +777,10 @@ select option { background: var(--paper-2); color: var(--ink); }
 .form-grid .full { grid-column: 1 / -1; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
 .required-note { font-size: .98rem; color: var(--ink-faint); font-style: italic; margin-bottom: 1.4rem; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.form-status { margin: 1.1rem 0 0; font-style: italic; font-size: 1.05rem; }
+.form-status.ok { color: var(--ink-soft); }
+.form-status.err { color: var(--oxblood); }
 
 /* ---------- Team ---------- */
 .tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 44px; border-bottom: 1px solid var(--rule); }

@@ -92,14 +92,18 @@ def safe_url(url, where, web_only=False):
     return ""
 
 
-def form_action(target):
-    """Formspree address: a full form link (https://formspree.io/f/...) or just an email address."""
-    target = str(target or "").strip()
-    if target.startswith("https://formspree.io/"):
-        return target
-    if re.fullmatch(r"[^@\s/\"<>]+@[^@\s/\"<>]+\.[a-z]{2,}", target, re.I):
-        return "https://formspree.io/" + target
-    sys.exit(f"ERROR: site.json form_email '{target}' must be an email address or a https://formspree.io/ link.")
+def form_open(site, subject):
+    """Opening of a Web3Forms form. Submissions are emailed to the address the access key was made for."""
+    key = str(site.get("web3forms_key") or "").strip()
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", key, re.I):
+        msg = "site.json: no valid Web3Forms access key, so the forms will not send"
+        if msg not in warnings:
+            warnings.append(msg)
+    return (f'<form action="https://api.web3forms.com/submit" method="post" data-ajax-form>\n'
+            f'          <input type="hidden" name="access_key" value="{esc(key)}">\n'
+            f'          <input type="hidden" name="subject" value="{esc(subject)}">\n'
+            f'          <input type="hidden" name="from_name" value="Book Club website">\n'
+            f'          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">')
 
 
 def load_json(name):
@@ -707,36 +711,36 @@ def build_request(site):
         </div>
         <p class="intro">If you couldn't find the book you were looking for with us, fill up the form below. We promise to do the best we can to procure it for you.</p>
         <p class="required-note"><span class="req">*</span> Required fields</p>
-        <form action="{esc(form_action(site["form_email"]))}" method="post">
-          <input type="hidden" name="_subject" value="Book request — Book Club website">
+        {form_open(site, "Book request — Book Club website")}
           <div class="form-grid">
             <div class="field">
               <label for="userName">Your name <span class="req">*</span></label>
-              <input type="text" id="userName" name="userName" autocomplete="name" required>
+              <input type="text" id="userName" name="Name" autocomplete="name" required>
             </div>
             <div class="field">
               <label for="rollNo">Roll No. <span class="req">*</span></label>
-              <input type="text" id="rollNo" name="rollNo" required>
+              <input type="text" id="rollNo" name="Roll number" required>
             </div>
             <div class="field full">
               <label for="emailID">IITK email ID <span class="req">*</span></label>
-              <input type="email" id="emailID" name="emailID" autocomplete="email" placeholder="username@iitk.ac.in" required>
+              <input type="email" id="emailID" name="email" autocomplete="email" placeholder="username@iitk.ac.in" required>
             </div>
             <div class="field">
               <label for="bookName">Name of the book <span class="req">*</span></label>
-              <input type="text" id="bookName" name="bookName" required>
+              <input type="text" id="bookName" name="Book" required>
             </div>
             <div class="field">
               <label for="authorName">Name of the author <span class="req">*</span></label>
-              <input type="text" id="authorName" name="authorName" required>
+              <input type="text" id="authorName" name="Author" required>
             </div>
             <div class="field full">
               <label for="additional">Additional details</label>
-              <textarea id="additional" name="additional" rows="3"></textarea>
+              <textarea id="additional" name="Additional details" rows="3"></textarea>
             </div>
           </div>
-          <label class="check" for="verify"><input type="checkbox" id="verify" name="verify"> Have you checked our <a href="catalogue.html">catalogue</a> for the book?</label>
+          <label class="check" for="verify"><input type="checkbox" id="verify" name="Checked the catalogue" value="Yes"> Have you checked our <a href="catalogue.html">catalogue</a> for the book?</label>
           <button type="submit" class="btn">Request {I["arrow"]}</button>
+          <p class="form-status" role="status" hidden></p>
         </form>
       </div>
       <aside>
@@ -820,23 +824,23 @@ def build_contact(site, team):
         </div>
         <p class="intro">Have any queries or suggestions for us? Fill up the form below to get in touch.</p>
         <p class="required-note"><span class="req">*</span> Required fields</p>
-        <form action="{esc(form_action(site["form_email"]))}" method="post">
-          <input type="hidden" name="_subject" value="Query — Book Club website">
+        {form_open(site, "Query — Book Club website")}
           <div class="form-grid">
             <div class="field">
               <label for="userName">Your name <span class="req">*</span></label>
-              <input type="text" id="userName" name="userName" autocomplete="name" required>
+              <input type="text" id="userName" name="Name" autocomplete="name" required>
             </div>
             <div class="field">
               <label for="emailID">Email ID <span class="req">*</span></label>
-              <input type="email" id="emailID" name="emailID" autocomplete="email" required>
+              <input type="email" id="emailID" name="email" autocomplete="email" required>
             </div>
             <div class="field full">
               <label for="query">Queries and/or suggestions <span class="req">*</span></label>
-              <textarea id="query" name="query" rows="4" required></textarea>
+              <textarea id="query" name="Message" rows="4" required></textarea>
             </div>
           </div>
           <button type="submit" class="btn">Submit {I["arrow"]}</button>
+          <p class="form-status" role="status" hidden></p>
         </form>
       </div>
       <aside>

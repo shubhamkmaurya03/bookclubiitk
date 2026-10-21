@@ -167,7 +167,7 @@ collections:
               - { label: Instagram, name: instagram, widget: string, required: false }
               - { label: Facebook, name: facebook, widget: string, required: false }
               - { label: Discord, name: discord, widget: string, required: false }
-          - { label: Email that receives the forms, name: form_email, widget: string, hint: "An email address, or a Formspree form link such as https://formspree.io/f/abcdwxyz" }
+          - { label: Web3Forms access key (forms), name: web3forms_key, widget: string, required: false, hint: "The key Web3Forms emailed to bookclub@iitk.ac.in. Form submissions are sent to the email the key was made for. To change that email, get a new key at https://web3forms.com" }
           - label: Home page
             name: home
             widget: object
