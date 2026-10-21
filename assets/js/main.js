@@ -69,6 +69,17 @@
   }
 
   /* ---- forms: send in the background and confirm on the page (without JS they post normally) ---- */
+  /* At most DAILY_LIMIT messages per browser per day, across both forms. */
+  var DAILY_LIMIT = 25;
+  function sentToday(add) {
+    var today = new Date().toISOString().slice(0, 10), rec = { day: today, n: 0 };
+    try {
+      var saved = JSON.parse(localStorage.getItem("bc-forms") || "null");
+      if (saved && saved.day === today) rec = saved;
+      if (add) { rec.n += 1; localStorage.setItem("bc-forms", JSON.stringify(rec)); }
+    } catch (e) {}
+    return rec.n;
+  }
   document.querySelectorAll("form[data-ajax-form]").forEach(function (form) {
     var status = form.querySelector(".form-status");
     var button = form.querySelector("button[type='submit']");
@@ -80,12 +91,17 @@
     form.addEventListener("submit", function (e) {
       if (!window.fetch || !window.FormData) return;
       e.preventDefault();
+      if (sentToday() >= DAILY_LIMIT) {
+        say("You have sent " + DAILY_LIMIT + " messages today, which is the daily limit. Please try again tomorrow, or write to us at bookclub@iitk.ac.in.", false);
+        return;
+      }
       button.disabled = true;
       say("Sending…", true);
       fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (res) {
           if (!res.success) throw new Error(res.message || "failed");
+          sentToday(true);
           form.reset();
           say("Thank you! Your message has reached the Book Club. We will get back to you soon.", true);
         })
