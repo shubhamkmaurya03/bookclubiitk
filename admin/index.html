@@ -8,7 +8,11 @@
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
 </head>
 <body>
-  <!-- Sveltia CMS: edits the content/ files in the GitHub repository. Sign in with a GitHub account that has access. -->
-  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  <!-- Sveltia CMS: edits the content/ files in the GitHub repository. Sign in with a GitHub account that has access.
+       Pinned to one version with an integrity hash, so a tampered copy on the CDN is refused. To update, change the
+       version and replace the hash with that of the new file (see README, "Updating the admin panel"). -->
+  <script src="https://unpkg.com/@sveltia/cms@0.250.1/dist/sveltia-cms.js"
+          integrity="sha384-0w9lix5secQDl5n7BX0n4v4ufSZM6VZI9Ov7SAVYPG5Z4lMN3i3OYoljubY5vdio"
+          crossorigin="anonymous"></script>
 </body>
 </html>

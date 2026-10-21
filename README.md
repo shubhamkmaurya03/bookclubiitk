@@ -56,6 +56,17 @@ python3 tools/build_catalogue.py path/to/data_updated.json      # merge them in
 ```
 Then commit and push `data/catalogue.json`.
 
+## Updating the admin panel
+
+`admin/index.html` loads Sveltia CMS pinned to one version, with an integrity hash so that a tampered copy
+is refused by the browser. To move to a newer version (only needed for a fix or feature you want):
+
+```
+V=0.250.1   # the new version, from https://www.npmjs.com/package/@sveltia/cms
+curl -sL https://unpkg.com/@sveltia/cms@$V/dist/sveltia-cms.js | openssl dgst -sha384 -binary | openssl base64 -A
+```
+Put the version in the script address and `sha384-` followed by the printed hash in `integrity`.
+
 ## Building locally
 
 ```

@@ -80,6 +80,28 @@ def esc(s):
     return html.escape(str(s or ""), quote=True)
 
 
+def safe_url(url, where, web_only=False):
+    """Allow only web, email and same-site links (no javascript: and the like)."""
+    url = re.sub(r"[\x00-\x20]", "", str(url or ""))
+    if not url:
+        return ""
+    if re.match(r"https?://", url, re.I) or (not web_only and (url.lower().startswith("mailto:")
+                                                              or not re.match(r"[a-z][a-z0-9+.-]*:", url, re.I))):
+        return url
+    warnings.append(f"{where}: link '{url}' was left out (only https:// links are allowed here)")
+    return ""
+
+
+def form_action(target):
+    """Formspree address: a full form link (https://formspree.io/f/...) or just an email address."""
+    target = str(target or "").strip()
+    if target.startswith("https://formspree.io/"):
+        return target
+    if re.fullmatch(r"[^@\s/\"<>]+@[^@\s/\"<>]+\.[a-z]{2,}", target, re.I):
+        return "https://formspree.io/" + target
+    sys.exit(f"ERROR: site.json form_email '{target}' must be an email address or a https://formspree.io/ link.")
+
+
 def load_json(name):
     with open(os.path.join(CONTENT, name), encoding="utf-8") as fh:
         return json.load(fh)
@@ -90,7 +112,8 @@ def inline_md(text):
     s = html.escape(str(text or ""), quote=False)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
-               lambda m: f'<a href="{m.group(2).replace(chr(34), "&quot;")}">{m.group(1)}</a>', s)
+               lambda m: (f'<a href="{safe_url(m.group(2), "Text link").replace(chr(34), "&quot;")}">{m.group(1)}</a>'
+                          if safe_url(m.group(2), "Text link") else m.group(1)), s)
     s = re.sub(r"(\*\*|__)(.+?)\1", r"<strong>\2</strong>", s)
     s = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", s)
     s = re.sub(r"(?<![\w_])_(?!\s)(.+?)(?<!\s)_(?![\w_])", r"<em>\1</em>", s)
@@ -151,6 +174,7 @@ def socials(site, cls="socials"):
              ("Discord", site["socials"].get("discord"), "discord")]
     links = []
     for name, url, icon in items:
+        url = safe_url(url, f"{name} link", web_only=True)
         if not url:
             continue
         label = f"<span>{name}</span>" if cls == "socials" else ""
@@ -683,7 +707,7 @@ def build_request(site):
         </div>
         <p class="intro">If you couldn't find the book you were looking for with us, fill up the form below. We promise to do the best we can to procure it for you.</p>
         <p class="required-note"><span class="req">*</span> Required fields</p>
-        <form action="https://formspree.io/{esc(site["form_email"])}" method="post">
+        <form action="{esc(form_action(site["form_email"]))}" method="post">
           <input type="hidden" name="_subject" value="Book request — Book Club website">
           <div class="form-grid">
             <div class="field">
@@ -796,7 +820,7 @@ def build_contact(site, team):
         </div>
         <p class="intro">Have any queries or suggestions for us? Fill up the form below to get in touch.</p>
         <p class="required-note"><span class="req">*</span> Required fields</p>
-        <form action="https://formspree.io/{esc(site["form_email"])}" method="post">
+        <form action="{esc(form_action(site["form_email"]))}" method="post">
           <input type="hidden" name="_subject" value="Query — Book Club website">
           <div class="form-grid">
             <div class="field">
@@ -865,7 +889,7 @@ def build_mellifluous(site, editions):
         roman = ROMAN[number - 1] if number <= len(ROMAN) else str(number)
         title = f"Mellifluous — {e.get('title')}"
         desc = "".join(markdown(e.get("description") or ""))
-        url = e.get("flipbook") or ""
+        url = safe_url(e.get("flipbook"), f"Mellifluous '{e.get('title', '')}' flipbook", web_only=True)
         blocks.append(f"""      <article class="edition reveal">
         <div class="edition-head">
           <span class="roman" aria-hidden="true">{roman}</span>

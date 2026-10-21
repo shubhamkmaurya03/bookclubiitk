@@ -167,7 +167,7 @@ collections:
               - { label: Instagram, name: instagram, widget: string, required: false }
               - { label: Facebook, name: facebook, widget: string, required: false }
               - { label: Discord, name: discord, widget: string, required: false }
-          - { label: Email that receives the forms, name: form_email, widget: string }
+          - { label: Email that receives the forms, name: form_email, widget: string, hint: "An email address, or a Formspree form link such as https://formspree.io/f/abcdwxyz" }
           - label: Home page
             name: home
             widget: object
