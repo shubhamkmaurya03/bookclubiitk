@@ -10,3 +10,6 @@ __pycache__/
 # Built website (published to the "site" branch by GitHub Actions)
 _site/
 .vscode/
+
+# Copy of the old website (contains member data, never commit)
+Book Club Old/
