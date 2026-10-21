@@ -8,6 +8,7 @@
   var grid = $("#books"), countEl = $("#count"), moreBtn = $("#more"), chipsEl = $("#chips");
 
   var books = [], results = [], shown = 0, genre = "";
+  var shelfUrl = grid.getAttribute("data-shelf"), shelf = null;
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -140,9 +141,72 @@
     h += '<div class="book-tags">';
     if (b.r) h += '<span class="rating" title="Goodreads rating"><span class="stars" style="--pct:' + Math.min(100, b.r * 20) + '%" aria-hidden="true"></span>' + b.r.toFixed(1) + '<span class="sr"> out of 5</span> <span class="src">Goodreads</span></span>';
     if (b.g) h += '<span class="tag">' + esc(b.g) + '</span>';
-    h += b.o ? '<span class="avail out">Issued</span>' : '<span class="avail">On the shelf</span>';
+    h += avail(b);
     h += '</div></div></article>';
     return h;
+  }
+
+  /* ---- live shelf status ----
+     The club computer publishes, for each Koha record with a copy out, [copies, issued, earliest due date].
+     Catalogue entries list their Koha record numbers in b.k. */
+  function validShelf(d) {
+    if (!d || d.v !== 1 || !d.out || typeof d.out !== "object") return null;
+    var out = {}, count = function (n) { return typeof n === "number" && n >= 0 && n < 1e4 && n % 1 === 0; };
+    Object.keys(d.out).forEach(function (k) {
+      var v = d.out[k];
+      if (/^\d{1,9}$/.test(k) && Array.isArray(v) && v.length === 3 && count(v[0]) && count(v[1]) && v[1] <= v[0] &&
+          typeof v[2] === "string" && /^(\d{4}-\d\d-\d\d)?$/.test(v[2])) out[k] = v;
+    });
+    var t = typeof d.updated === "string" ? new Date(d.updated) : null;
+    return { out: out, updated: t && !isNaN(t) ? t : null };
+  }
+  function loadShelf() {
+    if (!shelfUrl) return Promise.resolve(null);
+    var req = fetch(shelfUrl + (shelfUrl.indexOf("?") === -1 ? "?" : "&") + "t=" + Date.now(),
+                    { cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(validShelf)
+      .catch(function () { return null; });
+    return Promise.race([req, new Promise(function (done) { setTimeout(done, 5000, null); })]);
+  }
+  function istDate(d) {   // YYYY-MM-DD in Indian time
+    return new Date(d.getTime() + 5.5 * 3600e3).toISOString().slice(0, 10);
+  }
+  function shortDate(ymd) {
+    return new Date(ymd + "T12:00:00+05:30").toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  }
+  function avail(b) {
+    var on = '<span class="avail">On the shelf</span>';
+    if (!shelfUrl) return b.o ? '<span class="avail out">Issued</span>' : on;   // live status not set up
+    if (!shelf || !Array.isArray(b.k) || !b.k.length) return "";                // unknown: say nothing
+    var copies = 0, issued = 0, due = "", allKnown = true;
+    b.k.forEach(function (k) {
+      var v = shelf.out[k];
+      if (!v) { allKnown = false; return; }                                      // no copy of it out
+      copies += v[0]; issued += v[1];
+      if (v[2] && (!due || v[2] < due)) due = v[2];
+    });
+    if (!issued) return on;
+    if (allKnown && issued >= copies) {
+      var when = due && due >= istDate(new Date()) ? " · due " + shortDate(due) : "";
+      return '<span class="avail out">Issued' + esc(when) + '</span>';
+    }
+    return allKnown && copies > 1
+      ? '<span class="avail">' + (copies - issued) + ' of ' + copies + ' on the shelf</span>'
+      : on;
+  }
+  function showShelfNote() {
+    var note = $("#shelf-note");
+    if (!shelfUrl || !note) return;
+    if (shelf) {
+      note.textContent = "Live shelf status" + (shelf.updated ? ", last change " + shelf.updated.toLocaleString("en-IN",
+        { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "");
+      note.className = "shelf-note";
+    } else {
+      note.textContent = "Shelf status could not be loaded just now.";
+      note.className = "shelf-note off";
+    }
+    note.hidden = false;
   }
 
   function renderMore() {
@@ -168,10 +232,13 @@
   form.addEventListener("submit", function (e) { e.preventDefault(); clearTimeout(timer); run(); });
   moreBtn.addEventListener("click", renderMore);
 
+  var shelfReady = loadShelf();
   fetch("data/catalogue.json")
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (data) { return shelfReady.then(function (s) { shelf = s; return data; }); })
     .then(function (data) {
       books = data;
+      showShelfNote();
       books.forEach(function (b) {
         b.t = b.t || ""; b.a = b.a || "";
         b._t = norm(b.t); b._a = norm(b.a); b._g = norm(b.g);

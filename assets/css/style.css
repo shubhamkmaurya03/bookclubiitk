@@ -690,6 +690,9 @@ select option { background: var(--paper-2); color: var(--ink); }
 .results-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 26px 0 18px; flex-wrap: wrap; }
 .results-bar .count { font-style: italic; color: var(--ink-soft); font-size: 1.1rem; }
 .results-bar .count b { font-style: normal; color: var(--ink); font-weight: 500; }
+.shelf-note { color: var(--ink-faint); font-size: .98rem; margin: 0; }
+.shelf-note::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--forest); margin-right: 8px; vertical-align: middle; }
+.shelf-note.off::before { background: var(--ink-faint); }
 
 .books { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 18px; }
 @media (max-width: 400px) { .books { grid-template-columns: 1fr; } }

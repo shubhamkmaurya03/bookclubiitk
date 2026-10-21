@@ -56,6 +56,11 @@ python3 tools/build_catalogue.py path/to/data_updated.json      # merge them in
 ```
 Then commit and push `data/catalogue.json`.
 
+## Live shelf status
+
+The club computer (Koha) publishes which books are issued every 2 minutes, and the catalogue page shows it.
+Setup, safety and day-to-day checks: [tools/shelf/README.md](tools/shelf/README.md).
+
 ## Updating the admin panel
 
 `admin/index.html` loads Sveltia CMS pinned to one version, with an integrity hash so that a tampered copy

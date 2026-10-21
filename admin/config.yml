@@ -168,6 +168,7 @@ collections:
               - { label: Facebook, name: facebook, widget: string, required: false }
               - { label: Discord, name: discord, widget: string, required: false }
           - { label: Web3Forms access key (forms), name: web3forms_key, widget: string, required: false, hint: "The key Web3Forms emailed to bookclub@iitk.ac.in. Form submissions are sent to the email the key was made for. To change that email, get a new key at https://web3forms.com" }
+          - { label: Live shelf status address, name: shelf_status_url, widget: string, required: false, hint: "Where the club computer publishes which books are issued, e.g. https://shubhamkmaurya03.github.io/bookclub-shelf/status.json. Leave empty to turn live status off. See tools/shelf/README.md" }
           - label: Home page
             name: home
             widget: object

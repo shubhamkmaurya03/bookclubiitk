@@ -13,3 +13,6 @@ _site/
 
 # Copy of the old website (contains member data, never commit)
 Book Club Old/
+
+# Koha survey from the club computer (tools/shelf/koha_info.sh); has barcodes, keep it local
+koha-info/

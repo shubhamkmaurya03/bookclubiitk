@@ -647,6 +647,12 @@ def build_rules(site, rules):
 
 # ------------------------------------------------------------------ catalogue
 def build_catalogue(site, stats):
+    # Live shelf status published by the club computer (tools/shelf); must be an https:// address.
+    shelf = safe_url(site.get("shelf_status_url"), "Shelf status address", web_only=True)
+    if shelf and not shelf.lower().startswith("https://"):
+        warnings.append("Shelf status address must start with https://")
+        shelf = ""
+    shelf_attr = f' data-shelf="{esc(shelf)}"' if shelf else ""
     body = f"""    <header class="page-head wrap">
       <span class="eyebrow">The card catalogue</span>
       <h1>Catalogue</h1>
@@ -684,8 +690,9 @@ def build_catalogue(site, stats):
 
       <div class="results-bar">
         <p class="count" id="count" aria-live="polite">Results may take a few seconds to load.</p>
+        <p class="shelf-note" id="shelf-note" hidden></p>
       </div>
-      <div class="books" id="books">
+      <div class="books" id="books"{shelf_attr}>
         <div class="loading" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       </div>
       <div class="more-wrap"><button class="btn ghost" id="more" type="button" hidden>Show more books</button></div>
