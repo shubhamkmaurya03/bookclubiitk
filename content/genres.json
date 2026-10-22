@@ -1,0 +1,180 @@
+{
+  "codes": [
+    {
+      "code": "FIC",
+      "genre": "Fiction"
+    },
+    {
+      "code": "BN",
+      "genre": "Bengali"
+    },
+    {
+      "code": "HI",
+      "genre": "Hindi"
+    },
+    {
+      "code": "FY",
+      "genre": "Fantasy"
+    },
+    {
+      "code": "MT",
+      "genre": "Mystery & Thriller"
+    },
+    {
+      "code": "CL",
+      "genre": "Classics"
+    },
+    {
+      "code": "SF",
+      "genre": "Science Fiction"
+    },
+    {
+      "code": "CO",
+      "genre": "Collections"
+    },
+    {
+      "code": "COL",
+      "genre": "Collections"
+    },
+    {
+      "code": "GN",
+      "genre": "Graphic Novels"
+    },
+    {
+      "code": "MA",
+      "genre": "Manga"
+    },
+    {
+      "code": "NF",
+      "genre": "Non-Fiction"
+    },
+    {
+      "code": "RO",
+      "genre": "Romance"
+    },
+    {
+      "code": "HISF",
+      "genre": "Historical Fiction"
+    },
+    {
+      "code": "HU",
+      "genre": "Humour"
+    },
+    {
+      "code": "DF",
+      "genre": "Detective Fiction"
+    },
+    {
+      "code": "DT",
+      "genre": "Detective Fiction"
+    },
+    {
+      "code": "SH",
+      "genre": "Self Help"
+    },
+    {
+      "code": "SC",
+      "genre": "Science"
+    },
+    {
+      "code": "ABIO",
+      "genre": "Autobiographies"
+    },
+    {
+      "code": "BIOG",
+      "genre": "Biographies"
+    },
+    {
+      "code": "POL",
+      "genre": "Politics"
+    },
+    {
+      "code": "PO",
+      "genre": "Politics"
+    },
+    {
+      "code": "BUS",
+      "genre": "Business"
+    },
+    {
+      "code": "CR",
+      "genre": "Crime"
+    },
+    {
+      "code": "HO",
+      "genre": "Horror"
+    },
+    {
+      "code": "SPT",
+      "genre": "Spirituality"
+    },
+    {
+      "code": "DR",
+      "genre": "Drama"
+    },
+    {
+      "code": "SOC",
+      "genre": "Sociology"
+    },
+    {
+      "code": "POE",
+      "genre": "Poetry"
+    },
+    {
+      "code": "LIT",
+      "genre": "Literary Fiction"
+    },
+    {
+      "code": "LITF",
+      "genre": "Literary Fiction"
+    },
+    {
+      "code": "HIS",
+      "genre": "History"
+    },
+    {
+      "code": "SP",
+      "genre": "Sports"
+    },
+    {
+      "code": "WF",
+      "genre": "Westerns"
+    },
+    {
+      "code": "PSY",
+      "genre": "Psychology"
+    },
+    {
+      "code": "PSYF",
+      "genre": "Psychological Fiction"
+    },
+    {
+      "code": "TR",
+      "genre": "Travel"
+    },
+    {
+      "code": "YA",
+      "genre": "Young Adult"
+    },
+    {
+      "code": "ACT",
+      "genre": "Action & Adventure"
+    },
+    {
+      "code": "DOM",
+      "genre": "Domestic Fiction"
+    },
+    {
+      "code": "POLF",
+      "genre": "Political Fiction"
+    },
+    {
+      "code": "FEM",
+      "genre": "Feminism"
+    },
+    {
+      "code": "MED",
+      "genre": "Medical Thrillers"
+    }
+  ]
+}

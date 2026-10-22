@@ -2,12 +2,12 @@
 # Sets up the shelf sync on the club computer (Ubuntu with Koha). Run once:
 #
 #   sudo bash tools/shelf/install.sh <koha-instance> <github-owner/shelf-repo>
-#   e.g. sudo bash tools/shelf/install.sh library shubhamkmaurya03/bookclub-shelf
+#   e.g. sudo bash tools/shelf/install.sh bookclubiitk shubhamkmaurya03/bookclub-shelf
 #
 # It creates:
 #   - a system account "bookclub-shelf" that runs the sync and holds the token
 #   - a read-only database login that can see only these columns:
-#       items(itemnumber, biblionumber, onloan, itemlost, withdrawn)
+#       items(itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn)
 #       biblio(biblionumber, title, author)   biblioitems(biblionumber, isbn)
 #     and nothing about members
 #   - /etc/bookclub-shelf/ (settings, database login, GitHub token; readable only by that account)
@@ -30,14 +30,36 @@ DBUSER=bookclub_shelf
 ETC=/etc/bookclub-shelf
 APP=/opt/bookclub-shelf
 
-# Koha's database name, from the instance's settings (only the name is read, never the password).
+# Koha's database name, from the <config> section of the instance's settings (the file also has
+# Zebra <database> entries, which are not it). Only the name is read, never the password.
+koha_conf() {   # koha_conf <file> <field>: a field of the <config> section (never used for the password)
+  python3 -c 'import sys, xml.etree.ElementTree as E
+c = E.parse(sys.argv[1]).getroot().find("config")
+print(c.findtext(sys.argv[2], "").strip() if c is not None else "")' "$1" "$2" 2>/dev/null
+}
 CONF="/etc/koha/sites/$INSTANCE/koha-conf.xml"
 DB=""
-[ -r "$CONF" ] && DB="$(sed -n 's:.*<database>\(.*\)</database>.*:\1:p' "$CONF" | head -1)"
+[ -r "$CONF" ] && DB="$(koha_conf "$CONF" database)"
 DB="${DB:-koha_$INSTANCE}"
 [[ "$DB" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "Unexpected database name: $DB"; exit 1; }
-mysql -e "SELECT 1 FROM \`$DB\`.items LIMIT 1" >/dev/null || {
-  echo "Cannot reach Koha's database '$DB' as the database administrator (sudo mysql)."; exit 1; }
+
+# Database administrator login, needed once to create the read-only login: MySQL's root through
+# sudo, else Ubuntu's maintenance login, else ask for the root password.
+ADMIN_CNF=""
+cleanup() { [ -n "$ADMIN_CNF" ] && rm -f "$ADMIN_CNF"; }
+trap cleanup EXIT
+if mysql -e "SELECT 1" >/dev/null 2>&1; then
+  dbadmin() { mysql "$@"; }
+elif [ -r /etc/mysql/debian.cnf ] && mysql --defaults-file=/etc/mysql/debian.cnf -e "SELECT 1" >/dev/null 2>&1; then
+  dbadmin() { mysql --defaults-file=/etc/mysql/debian.cnf "$@"; }
+else
+  read -r -s -p "MySQL administrator (root) password: " ROOTPW; echo
+  ADMIN_CNF="$(mktemp)"; chmod 600 "$ADMIN_CNF"
+  printf '[client]\nuser=root\npassword=%s\n' "$ROOTPW" > "$ADMIN_CNF"; unset ROOTPW
+  dbadmin() { mysql --defaults-extra-file="$ADMIN_CNF" "$@"; }
+fi
+dbadmin -e "SELECT 1 FROM \`$DB\`.items LIMIT 1" >/dev/null || {
+  echo "Cannot reach Koha's database '$DB' as the database administrator."; exit 1; }
 echo "Koha database: $DB"
 
 # 1. System account (no login, no home folder).
@@ -45,10 +67,10 @@ id "$ACCOUNT" >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/
 
 # 2. Read-only database login, limited to the columns the sync needs.
 PASS="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
-mysql <<SQL
+dbadmin <<SQL
 DROP USER IF EXISTS '$DBUSER'@'localhost';
 CREATE USER '$DBUSER'@'localhost' IDENTIFIED BY '$PASS';
-GRANT SELECT (itemnumber, biblionumber, onloan, itemlost, withdrawn) ON \`$DB\`.\`items\` TO '$DBUSER'@'localhost';
+GRANT SELECT (itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn) ON \`$DB\`.\`items\` TO '$DBUSER'@'localhost';
 GRANT SELECT (biblionumber, title, author) ON \`$DB\`.\`biblio\` TO '$DBUSER'@'localhost';
 GRANT SELECT (biblionumber, isbn) ON \`$DB\`.\`biblioitems\` TO '$DBUSER'@'localhost';
 SQL

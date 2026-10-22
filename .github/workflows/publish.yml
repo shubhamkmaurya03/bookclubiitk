@@ -7,6 +7,8 @@ name: Build and publish website
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "30 4 * * *"   # daily at 10:00 IST, to pick up books newly added in Koha
   workflow_dispatch:
 
 permissions:
@@ -28,6 +30,16 @@ jobs:
 
       - name: Install build tools
         run: pip install -r tools/requirements.txt
+
+      - name: Refresh the catalogue from Koha's latest book list
+        # The club computer publishes books.json next to status.json (see tools/shelf/README.md).
+        # If live status is not set up, or the list can't be fetched, the catalogue in the repo is used.
+        run: |
+          url=$(python -c 'import json; print(json.load(open("content/site.json")).get("shelf_status_url") or "")')
+          case "$url" in
+            https://*/status.json) python tools/build_catalogue.py --fetch "${url%status.json}books.json" ;;
+            *) echo "Live shelf status not set up; using data/koha_books.json from the repository." ;;
+          esac
 
       - name: Build site
         run: python tools/build_site.py

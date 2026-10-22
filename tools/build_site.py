@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import sys
+import urllib.parse
 
 import yaml
 from PIL import Image, ImageOps
@@ -69,8 +70,9 @@ SPINES = [
     ("Bengali", "Bengali", "#1f4a4a", 88, 46),
     ("Hindi", "Hindi", "#7a3420", 80, 44),
 ]
-# Genres listed in "About us" that are not tagged separately in the catalogue
-GENRE_LINK = {"Non-Fiction": None, "Comics": "q=comics"}
+# Genres listed in "About us" under a different name in the catalogue
+GENRE_ALIAS = {"Comics": "Graphic Novels", "Popular Science": "Science"}
+CATALOGUE_GENRES = set()   # filled in main() from data/catalogue.json
 
 warnings = []
 
@@ -467,9 +469,10 @@ def build_blogs(site, posts):
 
 # ------------------------------------------------------------------ home
 def genre_href(g):
-    if g in GENRE_LINK:
-        return "catalogue.html" + ("?" + GENRE_LINK[g] if GENRE_LINK[g] else "")
-    return "catalogue.html?genre=" + g.replace(" ", "+")
+    g = GENRE_ALIAS.get(g, g)
+    if g in CATALOGUE_GENRES:
+        return "catalogue.html?" + urllib.parse.urlencode({"genre": g})
+    return "catalogue.html?" + urllib.parse.urlencode({"q": g})     # not a catalogue genre: search for it
 
 
 def bookshelves():
@@ -656,7 +659,7 @@ def build_catalogue(site, stats):
     body = f"""    <header class="page-head wrap">
       <span class="eyebrow">The card catalogue</span>
       <h1>Catalogue</h1>
-      <p>Search {stats['books']:,} books by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
+      <p>Search our {stats['books']:,} books ({stats['titles']:,} titles) by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
     </header>
 
     <section class="wrap" style="padding-bottom:clamp(56px,8vw,96px)">
@@ -999,7 +1002,9 @@ def main():
 
     cat = json.load(open(os.path.join(ROOT, "data", "catalogue.json"), encoding="utf-8"))
     genres = {b["g"] for b in cat if b.get("g")}
-    stats = {"books": len(cat), "books_round": f"{len(cat) // 1000 * 1000:,}+", "genres": len(genres) // 5 * 5}
+    CATALOGUE_GENRES.update(genres)
+    copies = sum(b.get("n", 1) for b in cat)
+    stats = {"books": copies, "titles": len(cat), "books_round": f"{copies // 1000 * 1000:,}+", "genres": len(genres) // 5 * 5}
 
     copy_static()
     build_blogs(site, posts)

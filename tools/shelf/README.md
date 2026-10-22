@@ -18,9 +18,10 @@ iitk.ac.in, reads that file in the visitor's browser and shows **On the shelf**,
 
 - **Nothing connects to the club computer.** It only sends files out to GitHub. No port is opened and Koha is not online.
 - **Only titles and counts leave the computer.** `status.json` has, per Koha record, `[copies, issued, earliest due date]`;
-  `books.json` has record number, title, author, ISBN and number of copies. No member data, no barcodes, no loan history.
+  `books.json` has record number, title, author, ISBN, number of copies and the genre code (the letters at the start of
+  the barcode, like `FIC`). No member data, no barcodes, no loan history.
 - **The program cannot read member data even by mistake.** It uses its own database login that can read only
-  `items(itemnumber, biblionumber, onloan, itemlost, withdrawn)`, `biblio(biblionumber, title, author)` and
+  `items(itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn)`, `biblio(biblionumber, title, author)` and
   `biblioitems(biblionumber, isbn)`.
 - **The GitHub token works only on the separate `bookclub-shelf` repository.** It cannot change the website or the
   admin panel. It is stored readable only by the `bookclub-shelf` system account on the club computer.
@@ -33,14 +34,14 @@ iitk.ac.in, reads that file in the visitor's browser and shows **On the shelf**,
 | File | Where it runs | What it does |
 |---|---|---|
 | `koha_info.sh` | club computer, once | Read-only survey of Koha, used to finish the setup (see `KOHA-INFO-PROMPT.md`) |
-| `install.sh` | club computer, once | Creates the account, database login, token file and 2-minute timer |
+| `install.sh` | club computer, once (guided by `INSTALL-PROMPT.md`) | Creates the account, database login, token file and 2-minute timer |
 | `shelf_sync.py` | club computer, every 2 min | Reads Koha and publishes `status.json` and `books.json` |
 | `shelf-repo/` | GitHub | Contents of the `bookclub-shelf` repository: the publishing workflow and a README |
 
 ## Setting it up
 
-**1. Survey Koha (once).** On the club computer, follow `KOHA-INFO-PROMPT.md` and bring `koha-info/` back.
-The catalogue entries are then linked to Koha's record numbers (the website shows live status only for linked books).
+**1. Survey Koha (once; done in October 2026).** On the club computer, follow `KOHA-INFO-PROMPT.md` and bring
+`koha-info/` back. The catalogue is built from Koha's list, so every book can show live status.
 
 **2. Create the `bookclub-shelf` repository** at https://github.com/new: name `bookclub-shelf`, **Public**,
 no README. Then upload the contents of `shelf-repo/` to it (keep the `.github/workflows/` folder), and:
@@ -56,13 +57,16 @@ no README. Then upload the contents of `shelf-repo/` to it (keep the `.github/wo
 ```
 git clone https://github.com/shubhamkmaurya03/bookclubiitk.git
 cd bookclubiitk
-sudo bash tools/shelf/install.sh <koha-instance> shubhamkmaurya03/bookclub-shelf
+sudo bash tools/shelf/install.sh bookclubiitk shubhamkmaurya03/bookclub-shelf
 ```
-Paste the token when asked (it is not shown). The script tests the database login, sends the first update and
+(`bookclubiitk` is the Koha instance on the club computer.) Paste the token when asked (it is not shown). The script
+needs MySQL's administrator once: it tries `sudo mysql`, then Ubuntu's maintenance login, and otherwise asks for the
+MySQL root password. The script tests the database login, sends the first update and
 starts the timer. Within a minute, `https://shubhamkmaurya03.github.io/bookclub-shelf/status.json` should open.
 
 **5. Turn it on in the website:** admin panel → *Timings, contact & home page* → **Live shelf status address**:
-`https://shubhamkmaurya03.github.io/bookclub-shelf/status.json`. Then upload the new site.zip to iitk.ac.in once.
+`https://shubhamkmaurya03.github.io/bookclub-shelf/status.json`. Saving rebuilds the website, which from then on also takes
+Koha's book list from the same place (daily and on every change). Then upload the new site.zip to iitk.ac.in once.
 
 ## Day to day
 
@@ -77,6 +81,8 @@ sudo -u bookclub-shelf python3 /opt/bookclub-shelf/shelf_sync.py --dry-run   # t
 
 - **Token expired or leaked:** create a new one (step 3) and run `install.sh` again; it asks to replace the token.
   Delete the old token on GitHub.
+- **IITK firewall login expired:** the sync logs "Is the IITK firewall login active…" and retries every 2 minutes;
+  log in again in the browser and it catches up.
 - **Needs a proxy for internet:** add `https_proxy=http://host:port` to `/etc/bookclub-shelf/env`.
 - **Koha upgraded or moved:** run `install.sh` again.
 - **Turn it off:** `sudo systemctl disable --now bookclub-shelf.timer`, and empty the address in the admin panel.

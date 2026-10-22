@@ -24,7 +24,7 @@ Content is kept in simple files and edited through an **admin panel**. Each save
 | `content/mellifluous.json` | Magazine editions (newest first) |
 | `content/site.json` | Timings, location, socials, home page text, quotes |
 | `assets/` | Stylesheet, scripts, images. `assets/uploads/` is where the admin panel puts new photos |
-| `data/catalogue.json` | Catalogue data, built by `tools/build_catalogue.py` |
+| `data/` | Catalogue data: Koha's book list, extra details, and `catalogue.json` built from them by `tools/build_catalogue.py` |
 | `admin/` | The admin panel (Sveltia CMS) and its form definitions (`config.yml`) |
 | `tools/` | Build scripts |
 | `.github/workflows/publish.yml` | Rebuilds and publishes the site on every change |
@@ -45,16 +45,25 @@ Content is kept in simple files and edited through an **admin panel**. Each save
 
 ## Updating the catalogue
 
-The library export (`data_updated.json`) contains member names and IDs, so it must **never** be committed
-(it is in `.gitignore`) or uploaded. On your own computer:
+The catalogue lists what is in **Koha**, the library system on the club computer, one entry per title.
+
+| File | What it holds |
+|---|---|
+| `data/koha_books.json` | Koha's titles: record number, title, author, ISBN, copies, genre code (no barcodes, no members) |
+| `content/genres.json` | Barcode genre code → genre name (admin panel → *Club pages → Genres*) |
+| `data/book_details.json` | Per Koha record: display title/author, Goodreads rating, cover, description (carried over from the old catalogue; edit by hand to fix one) |
+
+Once live shelf status is running, the club computer publishes Koha's list and the website build (on every
+change and daily) picks it up, so new books appear by themselves. Until then, or to refresh it by hand from a
+survey of the club computer (`tools/shelf/koha_info.sh`, which writes `koha-info/koha-books.tsv`):
 
 ```
-python3 tools/build_catalogue.py path/to/data_updated.json      # writes data/catalogue.json
-python3 tools/enrich_catalogue.py openlibrary                   # optional: fill missing descriptions/covers
+python3 tools/build_catalogue.py --survey koha-info/koha-books.tsv     # updates data/koha_books.json and data/catalogue.json
+python3 tools/enrich_catalogue.py openlibrary                         # optional: fill missing descriptions/covers
 GOOGLE_BOOKS_API_KEY=... python3 tools/enrich_catalogue.py google
-python3 tools/build_catalogue.py path/to/data_updated.json      # merge them in
+python3 tools/build_catalogue.py                                      # merge them in
 ```
-Then commit and push `data/catalogue.json`.
+Then commit and push `data/`. `koha-info/` has barcodes and stays on your computer (it is in `.gitignore`).
 
 ## Live shelf status
 

@@ -16,3 +16,6 @@ Book Club Old/
 
 # Koha survey from the club computer (tools/shelf/koha_info.sh); has barcodes, keep it local
 koha-info/
+
+# The zipped survey, if it arrives that way
+koha-info.zip

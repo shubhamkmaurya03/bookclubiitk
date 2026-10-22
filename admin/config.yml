@@ -147,6 +147,19 @@ collections:
               - { label: Fine, name: fine, widget: string }
           - { label: Please note box, name: note, widget: text, required: false }
 
+      - name: genres
+        label: Genres (barcode codes)
+        file: content/genres.json
+        description: "Each book's genre comes from the letters at the start of its Koha barcode (FIC000…, BN000…). When the club starts a new code, add it here; the website build lists any codes it does not know."
+        fields:
+          - label: Codes
+            name: codes
+            widget: list
+            summary: "{{fields.code}} → {{fields.genre}}"
+            fields:
+              - { label: Barcode code, name: code, widget: string, hint: "Letters at the start of the barcode, e.g. FIC" }
+              - { label: Genre shown on the website, name: genre, widget: string }
+
       - name: site
         label: Timings, contact & home page
         file: content/site.json

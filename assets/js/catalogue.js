@@ -187,6 +187,7 @@
       if (v[2] && (!due || v[2] < due)) due = v[2];
     });
     if (!issued) return on;
+    if (typeof b.n === "number" && b.n >= copies) { copies = b.n; allKnown = true; }   // total copies from the catalogue
     if (allKnown && issued >= copies) {
       var when = due && due >= istDate(new Date()) ? " · due " + shortDate(due) : "";
       return '<span class="avail out">Issued' + esc(when) + '</span>';

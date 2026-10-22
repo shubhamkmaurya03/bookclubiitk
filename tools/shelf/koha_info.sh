@@ -47,6 +47,11 @@ done
 env | grep -i '_proxy=' | sed -E 's#://[^@/ ]*@#://#' | tee -a "$REPORT"
 
 # ------------------------------------------------------------ Koha instances
+koha_conf() {   # koha_conf <file> <field>: a field of the <config> section (never used for the password)
+  python3 -c 'import sys, xml.etree.ElementTree as E
+c = E.parse(sys.argv[1]).getroot().find("config")
+print(c.findtext(sys.argv[2], "").strip() if c is not None else "")' "$1" "$2" 2>/dev/null
+}
 section "Koha"
 INSTANCES="$(koha-list 2>/dev/null || true)"
 say "Instances: ${INSTANCES:-none found by koha-list}"
@@ -57,10 +62,10 @@ say "Surveying instance: ${INST:-?}"
 CONF="/etc/koha/sites/$INST/koha-conf.xml"
 DB=""
 if [ -n "$INST" ] && [ -r "$CONF" ]; then
-  # Only the database name, host and port. The password line is never read out.
-  DB="$(sed -n 's:.*<database>\(.*\)</database>.*:\1:p' "$CONF" | head -1)"
+  # Only the database name, host and port of the <config> section. The password is never read out.
+  DB="$(koha_conf "$CONF" database)"
   say "Database name: $DB"
-  say "Database host: $(sed -n 's:.*<hostname>\(.*\)</hostname>.*:\1:p' "$CONF" | head -1)  port: $(sed -n 's:.*<port>\(.*\)</port>.*:\1:p' "$CONF" | head -1)"
+  say "Database host: $(koha_conf "$CONF" hostname)  port: $(koha_conf "$CONF" port)"
 else
   say "Koha settings file not found at $CONF"
 fi

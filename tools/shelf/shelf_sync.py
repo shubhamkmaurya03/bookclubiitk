@@ -10,7 +10,9 @@ publishes two files to the "status" branch of the shelf repository:
 
     status.json  {"v":1,"updated":"…","out":{"<biblionumber>":[copies, issued, "earliest due"]}}
                  (only titles with at least one copy issued)
-    books.json   {"v":1,"books":[[biblionumber,"title","author","isbn",copies], …]}
+    books.json   {"v":1,"books":[[biblionumber,"title","author","isbn",copies,"genre code"], …]}
+                 The genre code is the letters at the start of the barcode (FIC, BN, …),
+                 which the website turns into a genre; barcodes themselves are not published.
 
 Nothing is sent when nothing has changed. Each update replaces the previous one
 (no history is kept), then GitHub is asked to publish the files on GitHub Pages.
@@ -53,12 +55,13 @@ HAVING SUM(onloan IS NOT NULL) > 0
 BOOKS_SQL = """
 SELECT b.biblionumber, IFNULL(b.title, ''), IFNULL(b.author, ''),
        IFNULL((SELECT bi.isbn FROM biblioitems bi WHERE bi.biblionumber = b.biblionumber LIMIT 1), ''),
-       COUNT(i.itemnumber)
+       COUNT(i.itemnumber), IFNULL(MIN(i.barcode), '')
 FROM biblio b JOIN items i ON i.biblionumber = b.biblionumber
 WHERE IFNULL(i.itemlost, 0) = 0 AND IFNULL(i.withdrawn, 0) = 0
 GROUP BY b.biblionumber, b.title, b.author
 ORDER BY b.biblionumber
 """
+FIREWALL_HINT = "Is the IITK firewall login active on this computer? It will retry in 2 minutes."
 IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 
 
@@ -86,9 +89,10 @@ def read_koha(cfg):
     for bn, copies, issued, due in query(cfg, STATUS_SQL):
         out[str(int(bn))] = [int(copies), int(float(issued)), due[:10] if re.match(r"\d{4}-\d\d-\d\d", due) else ""]
     books = []
-    for bn, title, author, isbn, copies in query(cfg, BOOKS_SQL):
+    for bn, title, author, isbn, copies, barcode in query(cfg, BOOKS_SQL):
         isbn = re.sub(r"[^0-9Xx]", "", re.split(r"[|\s(]", isbn.strip() + " ")[0])
-        books.append([int(bn), clean(title), clean(author), isbn, int(copies)])
+        code = re.match(r"[A-Za-z]*", barcode.strip()).group().upper()[:12]
+        books.append([int(bn), clean(title), clean(author), isbn, int(copies), code])
     return out, books
 
 
@@ -104,10 +108,15 @@ def api(cfg, token, method, path, body=None):
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             data = r.read()
-            return json.loads(data) if data else {}
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:300]
         raise RuntimeError(f"GitHub {method} {path} failed: HTTP {e.code} {detail}") from None
+    except OSError as e:
+        raise RuntimeError(f"cannot reach GitHub ({e}). {FIREWALL_HINT}") from None
+    try:
+        return json.loads(data) if data else {}
+    except ValueError:
+        raise RuntimeError(f"unexpected reply instead of GitHub's. {FIREWALL_HINT}") from None
 
 
 def git_blob_sha(data):
