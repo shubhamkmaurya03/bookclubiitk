@@ -2,12 +2,14 @@
 (function () {
   var PAGE = 30;
   var COVER_COLOURS = ["#7d1f2c", "#2f4b3c", "#23395b", "#6b4a1f", "#4a2c4f", "#5c3a2e", "#1f4a4a", "#3b3b3b", "#8a5a2b", "#46523a"];
+  var SORTS = ["best", "new", "popular", "rating", "title"];
 
   var $ = function (s) { return document.querySelector(s); };
   var form = $("#cat-form"), qEl = $("#q"), byEl = $("#by"), sortEl = $("#sort");
   var grid = $("#books"), countEl = $("#count"), moreBtn = $("#more"), chipsEl = $("#chips");
+  var availWrap = $("#avail-wrap"), availEl = $("#avail"), surpriseBtn = $("#surprise");
 
-  var books = [], results = [], shown = 0, genre = "";
+  var books = [], results = [], shown = 0, genre = "", wantSort = "best", wantSurprise = false;
   var shelfUrl = grid.getAttribute("data-shelf"), shelf = null;
 
   function esc(s) {
@@ -29,7 +31,10 @@
     var p = new URLSearchParams(location.search);
     qEl.value = p.get("q") || "";
     byEl.value = ["title", "author", "genre"].indexOf(p.get("by")) !== -1 ? p.get("by") : "all";
-    sortEl.value = ["rating", "title"].indexOf(p.get("sort")) !== -1 ? p.get("sort") : "best";
+    wantSort = SORTS.indexOf(p.get("sort")) !== -1 ? p.get("sort") : "best";
+    sortEl.value = wantSort;
+    availEl.checked = p.get("avail") === "1";
+    wantSurprise = p.get("surprise") === "1";
     genre = p.get("genre") || "";
   }
   function writeURL() {
@@ -38,6 +43,7 @@
     if (byEl.value !== "all") p.set("by", byEl.value);
     if (genre) p.set("genre", genre);
     if (sortEl.value !== "best") p.set("sort", sortEl.value);
+    if (availOnly()) p.set("avail", "1");
     var qs = p.toString();
     history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
   }
@@ -80,19 +86,37 @@
   }
 
   /* ---- search ---- */
-  function run() {
-    var terms = norm(qEl.value).split(/\s+/).filter(Boolean);
-    var by = byEl.value;
-    results = books.filter(function (b) {
+  function availOnly() { return !!shelf && availEl.checked; }
+  function borrowed(b) {
+    var n = 0;
+    if (shelf && shelf.popular && Array.isArray(b.k)) b.k.forEach(function (k) { n += shelf.popular[k] || 0; });
+    return n;
+  }
+  function filtered(terms) {
+    var by = byEl.value, onlyAvail = availOnly();
+    return books.filter(function (b) {
       if (genre && b.g !== genre) return false;
+      if (onlyAvail && !onShelf(b)) return false;
       if (!terms.length) return true;
       var hay = by === "title" ? b._t : by === "author" ? b._a : by === "genre" ? b._g : b._t + " " + b._a + " " + b._g;
       for (var i = 0; i < terms.length; i++) if (hay.indexOf(terms[i]) === -1) return false;
       return true;
     });
-    if (sortEl.value === "rating") {
+  }
+  function run() {
+    var terms = norm(qEl.value).split(/\s+/).filter(Boolean);
+    results = filtered(terms);
+    var sort = sortEl.value;
+    if (sort === "rating") {
       results = results.slice().sort(function (a, b) { return (b.r || 0) - (a.r || 0); });
-    } else if (sortEl.value === "best") {
+    } else if (sort === "new") {
+      results = results.slice().sort(function (a, b) {
+        return (b.ad || "").localeCompare(a.ad || "") || Math.max.apply(null, b.k || [0]) - Math.max.apply(null, a.k || [0]);
+      });
+    } else if (sort === "popular") {
+      results = results.map(function (b, i) { return { b: b, n: borrowed(b), i: i }; })
+        .sort(function (x, y) { return y.n - x.n || x.i - y.i; }).map(function (x) { return x.b; });
+    } else if (sort === "best") {
       var first = terms[0] || "";
       results = results.map(function (b, i) {
         var s = 0;
@@ -114,16 +138,47 @@
     renderMore();
 
     // Counts are shown only for word searches, not for the whole collection or a genre.
+    var notes = [];
+    if (availOnly()) notes.push("on the shelf now");
+    if (sort === "new") notes.push("newest arrivals first");
+    if (sort === "popular") notes.push("most borrowed this semester first");
     var where = genre ? ' in <b>' + esc(genre) + '</b>' : "";
-    countEl.innerHTML = !results.length ? ""
-      : terms.length ? '<b>' + results.length.toLocaleString("en-IN") + '</b> ' + (results.length === 1 ? "book" : "books") +
-                       ' for “<b>' + esc(qEl.value.trim()) + '</b>”' + where
-      : genre ? 'Books in <b>' + esc(genre) + '</b>' : "";
+    var head = terms.length
+      ? '<b>' + results.length.toLocaleString("en-IN") + '</b> ' + (results.length === 1 ? "book" : "books") +
+        ' for “<b>' + esc(qEl.value.trim()) + '</b>”' + where
+      : genre ? 'Books in <b>' + esc(genre) + '</b>' : notes.length ? "All books" : "";
+    countEl.innerHTML = results.length && head ? head + (notes.length ? ", " + notes.join(", ") : "") : "";
     if (!results.length) {
-      grid.innerHTML = '<div class="empty"><b>Not on our shelves… yet.</b>' +
-        'Try a different spelling, or <a href="request.html">request the book</a> and we will do our best to procure it.</div>';
+      grid.innerHTML = availOnly()
+        ? '<div class="empty"><b>Every copy is out right now.</b>Untick <i>On the shelf now</i> to see all of them, ' +
+          'or check again in a few days.</div>'
+        : '<div class="empty"><b>Not on our shelves… yet.</b>' +
+          'Try a different spelling, or <a href="request.html">request the book</a> and we will do our best to procure it.</div>';
     }
   }
+
+  /* ---- surprise me: one random book from the current genre / search, preferring ones on the shelf ---- */
+  function surprise() {
+    var terms = norm(qEl.value).split(/\s+/).filter(Boolean);
+    var pool = filtered(terms);
+    if (shelf) {
+      var free = pool.filter(onShelf);
+      if (free.length) pool = free;
+    }
+    if (!pool.length) { run(); return; }
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    markChips();
+    writeURL();
+    grid.innerHTML = card(pick);
+    moreBtn.hidden = true;
+    countEl.innerHTML = 'A surprise pick' + (genre ? ' from <b>' + esc(genre) + '</b>' : "") +
+      ' · <button type="button" class="linkish" id="again">pick another</button>' +
+      ' · <button type="button" class="linkish" id="showall">show all</button>';
+  }
+  countEl.addEventListener("click", function (e) {
+    if (e.target.id === "again") surprise();
+    if (e.target.id === "showall") run();
+  });
 
   function cover(b) {
     var colour = COVER_COLOURS[hash(b.t + b.a) % COVER_COLOURS.length];
@@ -147,8 +202,8 @@
   }
 
   /* ---- live shelf status ----
-     The club computer publishes, for each Koha record with a copy out, [copies, issued, earliest due date].
-     Catalogue entries list their Koha record numbers in b.k. */
+     The club computer publishes, for each Koha record with a copy out, [copies, issued, earliest due date],
+     and the titles borrowed most this semester. Catalogue entries list their Koha record numbers in b.k. */
   function validShelf(d) {
     if (!d || d.v !== 1 || !d.out || typeof d.out !== "object") return null;
     var out = {}, count = function (n) { return typeof n === "number" && n >= 0 && n < 1e4 && n % 1 === 0; };
@@ -157,8 +212,15 @@
       if (/^\d{1,9}$/.test(k) && Array.isArray(v) && v.length === 3 && count(v[0]) && count(v[1]) && v[1] <= v[0] &&
           typeof v[2] === "string" && /^(\d{4}-\d\d-\d\d)?$/.test(v[2])) out[k] = v;
     });
+    var popular = null, top = d.popular && Array.isArray(d.popular.top) ? d.popular.top : [];
+    top.forEach(function (v) {
+      if (Array.isArray(v) && v.length === 2 && count(v[0]) && count(v[1]) && v[1] > 0) {
+        popular = popular || {};
+        popular[v[0]] = v[1];
+      }
+    });
     var t = typeof d.updated === "string" ? new Date(d.updated) : null;
-    return { out: out, updated: t && !isNaN(t) ? t : null };
+    return { out: out, popular: popular, updated: t && !isNaN(t) ? t : null };
   }
   function loadShelf() {
     if (!shelfUrl) return Promise.resolve(null);
@@ -175,10 +237,9 @@
   function shortDate(ymd) {
     return new Date(ymd + "T12:00:00+05:30").toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
   }
-  function avail(b) {
-    var on = '<span class="avail">On the shelf</span>';
-    if (!shelfUrl) return b.o ? '<span class="avail out">Issued</span>' : on;   // live status not set up
-    if (!shelf || !Array.isArray(b.k) || !b.k.length) return "";                // unknown: say nothing
+  /* {copies, issued, due, allKnown} from the live status, or null when unknown */
+  function shelfState(b) {
+    if (!shelf || !Array.isArray(b.k) || !b.k.length) return null;
     var copies = 0, issued = 0, due = "", allKnown = true;
     b.k.forEach(function (k) {
       var v = shelf.out[k];
@@ -186,14 +247,25 @@
       copies += v[0]; issued += v[1];
       if (v[2] && (!due || v[2] < due)) due = v[2];
     });
-    if (!issued) return on;
     if (typeof b.n === "number" && b.n >= copies) { copies = b.n; allKnown = true; }   // total copies from the catalogue
-    if (allKnown && issued >= copies) {
-      var when = due && due >= istDate(new Date()) ? " · due " + shortDate(due) : "";
+    return { copies: copies, issued: issued, due: due, allKnown: allKnown };
+  }
+  function onShelf(b) {
+    var s = shelfState(b);
+    return !!s && (!s.issued || !(s.allKnown && s.issued >= s.copies));
+  }
+  function avail(b) {
+    var on = '<span class="avail">On the shelf</span>';
+    if (!shelfUrl) return b.o ? '<span class="avail out">Issued</span>' : on;   // live status not set up
+    var s = shelfState(b);
+    if (!s) return "";                                                          // unknown: say nothing
+    if (!s.issued) return on;
+    if (s.allKnown && s.issued >= s.copies) {
+      var when = s.due && s.due >= istDate(new Date()) ? " · due " + shortDate(s.due) : "";
       return '<span class="avail out">Issued' + esc(when) + '</span>';
     }
-    return allKnown && copies > 1
-      ? '<span class="avail">' + (copies - issued) + ' of ' + copies + ' on the shelf</span>'
+    return s.allKnown && s.copies > 1
+      ? '<span class="avail">' + (s.copies - s.issued) + ' of ' + s.copies + ' on the shelf</span>'
       : on;
   }
   function showShelfNote() {
@@ -208,6 +280,17 @@
       note.className = "shelf-note off";
     }
     note.hidden = false;
+  }
+  /* Options that need live data appear only when it has loaded. */
+  function setupShelfControls() {
+    availWrap.hidden = !shelf;
+    if (!shelf) availEl.checked = false;
+    var popOpt = sortEl.querySelector('option[value="popular"]');
+    if (!(shelf && shelf.popular)) {
+      popOpt.remove();
+      if (wantSort === "popular") wantSort = "best";
+    }
+    sortEl.value = wantSort;
   }
 
   function renderMore() {
@@ -226,10 +309,12 @@
 
   /* ---- wire up ---- */
   readURL();
-  var timer;
+  var timer, ready = false;
   qEl.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(run, 180); });
   byEl.addEventListener("change", run);
   sortEl.addEventListener("change", run);
+  availEl.addEventListener("change", run);
+  surpriseBtn.addEventListener("click", function () { if (ready) surprise(); });
   form.addEventListener("submit", function (e) { e.preventDefault(); clearTimeout(timer); run(); });
   moreBtn.addEventListener("click", renderMore);
 
@@ -240,12 +325,14 @@
     .then(function (data) {
       books = data;
       showShelfNote();
+      setupShelfControls();
       books.forEach(function (b) {
         b.t = b.t || ""; b.a = b.a || "";
         b._t = norm(b.t); b._a = norm(b.a); b._g = norm(b.g);
       });
       buildChips();
-      run();
+      ready = true;
+      if (wantSurprise) surprise(); else run();
     })
     .catch(function () {
       grid.innerHTML = '<div class="empty"><b>The card drawer is stuck.</b>We could not load the catalogue just now. Please refresh the page in a moment.</div>';

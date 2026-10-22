@@ -191,6 +191,13 @@ collections:
               - { label: About us paragraphs, name: about, widget: list, field: { label: Paragraph, name: paragraph, widget: text } }
               - { label: Genres listed, name: genres, widget: list, field: { label: Genre, name: genre, widget: string } }
               - { label: Sign-off line, name: signoff, widget: string }
+          - label: Donate Books page
+            name: donate
+            widget: object
+            collapsed: true
+            fields:
+              - { label: Introduction, name: intro, widget: text }
+              - { label: What we take, name: accept, widget: text }
           - label: Quotes (bottom of each page)
             name: quotes
             widget: object
@@ -203,3 +210,4 @@ collections:
               - { label: Blogs, name: blogs, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
               - { label: Contact Us, name: contact, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
               - { label: Mellifluous, name: mellifluous, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }
+              - { label: Donate Books, name: donate, widget: object, fields: [{ label: Quote, name: text, widget: text }, { label: Author, name: author, widget: string }] }

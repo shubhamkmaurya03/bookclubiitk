@@ -43,6 +43,10 @@
     ],
     "signoff": "Do drop in and see us sometime!"
   },
+  "donate": {
+    "intro": "Finished a book you loved? Give it a second life on our shelves. Tell us what you have, and we will reply to arrange a time to drop it off at the club.",
+    "accept": "Books in any genre and language, in readable condition. We will write back before you bring them, so we can avoid duplicates."
+  },
   "quotes": {
     "home": {
       "text": "There is no friend as loyal as a book.",
@@ -71,6 +75,10 @@
     "mellifluous": {
       "text": "There is no friend as loyal as a book.",
       "author": "Ernest Hemingway"
+    },
+    "donate": {
+      "text": "A book is a gift you can open again and again.",
+      "author": "Garrison Keillor"
     }
   }
 }

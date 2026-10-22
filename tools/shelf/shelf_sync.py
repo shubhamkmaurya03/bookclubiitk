@@ -8,9 +8,11 @@ It reads Koha's database through a read-only login that can see only a few
 columns of the item and title tables (never members or loans history), and
 publishes two files to the "status" branch of the shelf repository:
 
-    status.json  {"v":1,"updated":"…","out":{"<biblionumber>":[copies, issued, "earliest due"]}}
-                 (only titles with at least one copy issued)
-    books.json   {"v":1,"books":[[biblionumber,"title","author","isbn",copies,"genre code"], …]}
+    status.json  {"v":1,"updated":"…","out":{"<biblionumber>":[copies, issued, "earliest due"]},
+                  "popular":{"since":"YYYY-MM-DD","top":[[biblionumber, times borrowed], …]}}
+                 (out: only titles with at least one copy issued; popular: the 30 titles
+                 borrowed most this semester, counted from loan dates only)
+    books.json   {"v":1,"books":[[biblionumber,"title","author","isbn",copies,"genre code","date added"], …]}
                  The genre code is the letters at the start of the barcode (FIC, BN, …),
                  which the website turns into a genre; barcodes themselves are not published.
 
@@ -55,11 +57,22 @@ HAVING SUM(onloan IS NOT NULL) > 0
 BOOKS_SQL = """
 SELECT b.biblionumber, IFNULL(b.title, ''), IFNULL(b.author, ''),
        IFNULL((SELECT bi.isbn FROM biblioitems bi WHERE bi.biblionumber = b.biblionumber LIMIT 1), ''),
-       COUNT(i.itemnumber), IFNULL(MIN(i.barcode), '')
+       COUNT(i.itemnumber), IFNULL(MIN(i.barcode), ''), IFNULL(MAX(i.dateaccessioned), '')
 FROM biblio b JOIN items i ON i.biblionumber = b.biblionumber
 WHERE IFNULL(i.itemlost, 0) = 0 AND IFNULL(i.withdrawn, 0) = 0
 GROUP BY b.biblionumber, b.title, b.author
 ORDER BY b.biblionumber
+"""
+# How often each title was borrowed since a date: loan dates only, nothing about who borrowed.
+POPULAR_SQL = """
+SELECT i.biblionumber, COUNT(*)
+FROM (SELECT itemnumber, issuedate FROM issues WHERE issuedate >= '{since}'
+      UNION ALL
+      SELECT itemnumber, issuedate FROM old_issues WHERE issuedate >= '{since}') t
+JOIN items i ON i.itemnumber = t.itemnumber
+GROUP BY i.biblionumber
+ORDER BY COUNT(*) DESC, i.biblionumber
+LIMIT 30
 """
 FIREWALL_HINT = "Is the IITK firewall login active on this computer? It will retry in 2 minutes."
 IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
@@ -84,16 +97,27 @@ def clean(s):
     return " ".join(s.split()).rstrip(" /:;,=").strip()
 
 
+def semester_start(today):
+    """IIT Kanpur semesters: from 1 January and from 15 July. Early in a semester, include the previous one."""
+    start = datetime.date(today.year, 7, 15) if today >= datetime.date(today.year, 7, 15) else datetime.date(today.year, 1, 1)
+    if (today - start).days < 30:
+        start = datetime.date(today.year, 1, 1) if start.month == 7 else datetime.date(today.year - 1, 7, 15)
+    return start
+
+
 def read_koha(cfg):
     out = {}
     for bn, copies, issued, due in query(cfg, STATUS_SQL):
         out[str(int(bn))] = [int(copies), int(float(issued)), due[:10] if re.match(r"\d{4}-\d\d-\d\d", due) else ""]
     books = []
-    for bn, title, author, isbn, copies, barcode in query(cfg, BOOKS_SQL):
+    for bn, title, author, isbn, copies, barcode, added in query(cfg, BOOKS_SQL):
         isbn = re.sub(r"[^0-9Xx]", "", re.split(r"[|\s(]", isbn.strip() + " ")[0])
         code = re.match(r"[A-Za-z]*", barcode.strip()).group().upper()[:12]
-        books.append([int(bn), clean(title), clean(author), isbn, int(copies), code])
-    return out, books
+        added = added[:10] if re.match(r"\d{4}-\d\d-\d\d", added) else ""
+        books.append([int(bn), clean(title), clean(author), isbn, int(copies), code, added])
+    since = semester_start(datetime.datetime.now(IST).date()).isoformat()
+    top = [[int(bn), int(n)] for bn, n in query(cfg, POPULAR_SQL.format(since=since))]
+    return out, books, {"since": since, "top": top}
 
 
 # ---------------------------------------------------------------- GitHub
@@ -158,15 +182,17 @@ def main():
     with open(CONFIG, encoding="utf-8") as fh:
         cfg.update(json.load(fh))
 
-    out, books = read_koha(cfg)
+    out, books, popular = read_koha(cfg)
     issued = sum(v[1] for v in out.values())
     if "--dry-run" in args:
         print(f"Koha: {len(books)} titles, {sum(b[4] for b in books)} copies, {issued} copies issued "
               f"({len(out)} titles). Example: {books[0] if books else '-'}")
+        print(f"Borrowed since {popular['since']}: {len(popular['top'])} titles in the top list"
+              + (f", most borrowed {popular['top'][0][1]} times" if popular["top"] else ""))
         return
 
     # Compare without the timestamp, so an unchanged shelf sends nothing.
-    status_core, books_data = dumps({"v": 1, "out": out}), dumps({"v": 1, "books": books})
+    status_core, books_data = dumps({"v": 1, "out": out, "popular": popular}), dumps({"v": 1, "books": books})
     digest = hashlib.sha256(status_core + b"\n" + books_data).hexdigest()
     state_path = os.path.join(cfg["state_dir"], "state.json")
     try:
@@ -180,7 +206,7 @@ def main():
     with open(cfg["token_file"], encoding="utf-8") as fh:
         token = fh.read().strip()
     updated = datetime.datetime.now(IST).replace(microsecond=0).isoformat()
-    files = {"status.json": dumps({"v": 1, "updated": updated, "out": out}), "books.json": books_data}
+    files = {"status.json": dumps({"v": 1, "updated": updated, "out": out, "popular": popular}), "books.json": books_data}
     try:
         blobs = publish(cfg, token, files, state)
     except RuntimeError:

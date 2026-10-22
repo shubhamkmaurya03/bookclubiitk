@@ -19,3 +19,6 @@ koha-info/
 
 # The zipped survey, if it arrives that way
 koha-info.zip
+
+# Most borrowed this semester, fetched by the website build (tools/build_catalogue.py --fetch)
+data/popular.json

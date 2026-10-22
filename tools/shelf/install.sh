@@ -7,8 +7,9 @@
 # It creates:
 #   - a system account "bookclub-shelf" that runs the sync and holds the token
 #   - a read-only database login that can see only these columns:
-#       items(itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn)
+#       items(itemnumber, biblionumber, barcode, dateaccessioned, onloan, itemlost, withdrawn)
 #       biblio(biblionumber, title, author)   biblioitems(biblionumber, isbn)
+#       issues(itemnumber, issuedate)   old_issues(itemnumber, issuedate)   (loan dates, to count borrowing)
 #     and nothing about members
 #   - /etc/bookclub-shelf/ (settings, database login, GitHub token; readable only by that account)
 #   - a systemd timer that runs the sync every 2 minutes while the computer is on
@@ -70,9 +71,11 @@ PASS="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
 dbadmin <<SQL
 DROP USER IF EXISTS '$DBUSER'@'localhost';
 CREATE USER '$DBUSER'@'localhost' IDENTIFIED BY '$PASS';
-GRANT SELECT (itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn) ON \`$DB\`.\`items\` TO '$DBUSER'@'localhost';
+GRANT SELECT (itemnumber, biblionumber, barcode, dateaccessioned, onloan, itemlost, withdrawn) ON \`$DB\`.\`items\` TO '$DBUSER'@'localhost';
 GRANT SELECT (biblionumber, title, author) ON \`$DB\`.\`biblio\` TO '$DBUSER'@'localhost';
 GRANT SELECT (biblionumber, isbn) ON \`$DB\`.\`biblioitems\` TO '$DBUSER'@'localhost';
+GRANT SELECT (itemnumber, issuedate) ON \`$DB\`.\`issues\` TO '$DBUSER'@'localhost';
+GRANT SELECT (itemnumber, issuedate) ON \`$DB\`.\`old_issues\` TO '$DBUSER'@'localhost';
 SQL
 
 # 3. Settings, database login and token, readable only by the sync account.

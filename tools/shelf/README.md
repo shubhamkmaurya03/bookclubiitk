@@ -17,12 +17,14 @@ iitk.ac.in, reads that file in the visitor's browser and shows **On the shelf**,
 ## What is protected, and how
 
 - **Nothing connects to the club computer.** It only sends files out to GitHub. No port is opened and Koha is not online.
-- **Only titles and counts leave the computer.** `status.json` has, per Koha record, `[copies, issued, earliest due date]`;
-  `books.json` has record number, title, author, ISBN, number of copies and the genre code (the letters at the start of
-  the barcode, like `FIC`). No member data, no barcodes, no loan history.
+- **Only titles and counts leave the computer.** `status.json` has, per Koha record, `[copies, issued, earliest due date]`,
+  plus the 30 titles borrowed most this semester with how many times; `books.json` has record number, title, author,
+  ISBN, number of copies, the genre code (the letters at the start of the barcode, like `FIC`) and the date added.
+  No member data, no barcodes, no record of who borrowed what.
 - **The program cannot read member data even by mistake.** It uses its own database login that can read only
-  `items(itemnumber, biblionumber, barcode, onloan, itemlost, withdrawn)`, `biblio(biblionumber, title, author)` and
-  `biblioitems(biblionumber, isbn)`.
+  `items(itemnumber, biblionumber, barcode, dateaccessioned, onloan, itemlost, withdrawn)`, `biblio(biblionumber, title,
+  author)`, `biblioitems(biblionumber, isbn)`, and the loan dates `issues(itemnumber, issuedate)` and
+  `old_issues(itemnumber, issuedate)`, which it only counts.
 - **The GitHub token works only on the separate `bookclub-shelf` repository.** It cannot change the website or the
   admin panel. It is stored readable only by the `bookclub-shelf` system account on the club computer.
 - **No history.** Each update replaces the previous one, so nobody can browse when each book went out.
@@ -84,7 +86,8 @@ sudo -u bookclub-shelf python3 /opt/bookclub-shelf/shelf_sync.py --dry-run   # t
 - **IITK firewall login expired:** the sync logs "Is the IITK firewall login active…" and retries every 2 minutes;
   log in again in the browser and it catches up.
 - **Needs a proxy for internet:** add `https_proxy=http://host:port` to `/etc/bookclub-shelf/env`.
-- **Koha upgraded or moved:** run `install.sh` again.
+- **Koha upgraded or moved, or the scripts here changed:** `cd ~/bookclubiitk && git pull`, then run `install.sh` again
+  (answer N to keep the saved token).
 - **Turn it off:** `sudo systemctl disable --now bookclub-shelf.timer`, and empty the address in the admin panel.
 - **Remove completely:**
   ```

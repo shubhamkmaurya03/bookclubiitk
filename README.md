@@ -49,7 +49,7 @@ The catalogue lists what is in **Koha**, the library system on the club computer
 
 | File | What it holds |
 |---|---|
-| `data/koha_books.json` | Koha's titles: record number, title, author, ISBN, copies, genre code (no barcodes, no members) |
+| `data/koha_books.json` | Koha's titles: record number, title, author, ISBN, copies, genre code, date added (no barcodes, no members) |
 | `content/genres.json` | Barcode genre code → genre name (admin panel → *Club pages → Genres*) |
 | `data/book_details.json` | Per Koha record: display title/author, Goodreads rating, cover, description (carried over from the old catalogue; edit by hand to fix one) |
 

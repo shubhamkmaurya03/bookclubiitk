@@ -54,7 +54,7 @@ NAV = [
     ("contact.html", "Contact Us"),
     ("mellifluous.html", "Mellifluous"),
 ]
-RESERVED = {h for h, _ in NAV} | {"404.html"}
+RESERVED = {h for h, _ in NAV} | {"404.html", "donate.html"}
 
 # Genre spines on the home-page shelf: label, catalogue genre, colour, height %, width px
 SPINES = [
@@ -258,7 +258,7 @@ def header(site, active):
 def footer(site, quote_key, extra_scripts=""):
     q = site["quotes"].get(quote_key) or site["quotes"]["home"]
     nav = "".join(f'<li><a href="{h}">{l}</a></li>' for h, l in NAV[:4])
-    nav2 = "".join(f'<li><a href="{h}">{l}</a></li>' for h, l in NAV[4:])
+    nav2 = "".join(f'<li><a href="{h}">{l}</a></li>' for h, l in NAV[4:]) + '<li><a href="donate.html">Donate books</a></li>'
     t = site["timings"]
     return f"""
   <section class="epigraph" aria-label="Quotation">
@@ -321,6 +321,14 @@ def timings_card(site):
               <li><span>Weekends (Fri – Sun)</span><strong>{esc(t["weekends"])}</strong></li>
             </ul>
             <p class="note">{nowrap_room(t["location"])}</p>
+          </div>"""
+
+
+def donate_card():
+    return f"""<div class="card">
+            <h3>Have books to give?</h3>
+            <p class="muted" style="font-size:1.05rem">Finished books can find new readers on our shelves.</p>
+            <a class="link-arrow" href="donate.html">Donate books {I["arrow"]}</a>
           </div>"""
 
 
@@ -494,7 +502,54 @@ def bookshelves():
             '<div class="shelf-set sm">' + shelf(SPINES[:6], .86) + shelf(SPINES[6:], .86, 24) + '</div>')
 
 
-def build_home(site, posts, editions, stats):
+COVER_COLOURS = ["#7d1f2c", "#2f4b3c", "#23395b", "#6b4a1f", "#4a2c4f", "#5c3a2e", "#1f4a4a", "#3b3b3b", "#8a5a2b", "#46523a"]
+
+
+def mini_book(b, rank=None):
+    """A small cover card linking to the book in the catalogue."""
+    colour = COVER_COLOURS[sum(map(ord, b["t"] + b.get("a", ""))) % len(COVER_COLOURS)]
+    title = b["t"] if len(b["t"]) <= 60 else b["t"][:57] + "…"
+    made = f'<span class="made-cover" style="background:{colour}">{esc(title)}</span>'
+    img = safe_url(b.get("i"), "Cover", web_only=True)
+    img_html = (f'<img src="{esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">'
+                if img else "")
+    badge = f'<span class="rank" aria-label="Number {rank}">{rank}</span>' if rank else ""
+    href = "catalogue.html?" + urllib.parse.urlencode({"q": b["t"], "by": "title"})
+    return (f'<a class="mini-book" href="{esc(href)}">{badge}<span class="mini-cover">{made}{img_html}</span>'
+            f'<b>{esc(b["t"])}</b><span>{esc(b.get("a", ""))}</span></a>')
+
+
+def home_shelves(cat):
+    """New arrivals (from Koha's dates) and, when the club computer sends it, most borrowed this semester."""
+    shelves = []
+    newest = sorted((b for b in cat if b.get("ad")), key=lambda b: (b["ad"], max(b["k"])), reverse=True)[:6]
+    if newest:
+        shelves.append(("Fresh on the shelves", "New arrivals", "catalogue.html?sort=new", "All new arrivals",
+                        "".join(mini_book(b) for b in newest)))
+    pop_path = os.path.join(ROOT, "data", "popular.json")
+    if os.path.exists(pop_path):
+        pop = json.load(open(pop_path, encoding="utf-8"))
+        counts = {bn: n for bn, n in pop.get("top", [])}
+        ranked = sorted(((sum(counts.get(k, 0) for k in b["k"]), b) for b in cat if any(k in counts for k in b["k"])),
+                        key=lambda x: (-x[0], x[1]["t"]))
+        ranked = [b for n, b in ranked if n >= 2][:6]
+        if len(ranked) >= 4:
+            shelves.append(("Popular right now", "Most borrowed this semester", "catalogue.html?sort=popular", "See more",
+                            "".join(mini_book(b, i + 1) for i, b in enumerate(ranked))))
+    return "".join(f"""
+    <section class="section tight">
+      <div class="wrap">
+        <div class="section-head">
+          <div><span class="eyebrow">{eyebrow}</span><h2>{title}</h2></div>
+          <a class="link-arrow" href="{href}">{more} {I["arrow"]}</a>
+        </div>
+        <div class="mini-shelf">{cards}</div>
+      </div>
+    </section>
+""" for eyebrow, title, href, more, cards in shelves)
+
+
+def build_home(site, posts, editions, stats, cat):
     h = site["home"]
     about = h.get("about") or []
     first, rest = (about[0], about[1:]) if about else ("", [])
@@ -552,6 +607,7 @@ def build_home(site, posts, editions, stats):
             <a href="catalogue.html">Browse all {stats['books_round']} books</a>
             <a href="request.html">Request a book</a>
             <a href="rules.html">How borrowing works</a>
+            <a href="catalogue.html?surprise=1">Surprise me</a>
           </div>
         </div>
         <div class="shelf-wrap" aria-label="Browse by genre">
@@ -585,10 +641,11 @@ def build_home(site, posts, editions, stats):
         <aside>
           {timings_card(site)}
           {socials_card(site)}
+          {donate_card()}
         </aside>
       </div>
     </section>
-{reviews}{feature}"""
+{home_shelves(cat)}{reviews}{feature}"""
     page(site, "index.html", "Home - Book Club IIT Kanpur",
          f"The SAC Book Club of IIT Kanpur: a free collection of {stats['books_round']} books run by students. "
          "Search the catalogue, request a book, read reviews and our magazine Mellifluous.",
@@ -683,10 +740,16 @@ def build_catalogue(site, stats):
             <label for="sort">Sort by</label>
             <select id="sort" name="sort">
               <option value="best">Best match</option>
+              <option value="new">Newest arrivals</option>
+              <option value="popular">Most borrowed</option>
               <option value="rating">Highest rated</option>
               <option value="title">Title, A – Z</option>
             </select>
           </div>
+        </div>
+        <div class="search-tools">
+          <label class="check" id="avail-wrap" hidden><input type="checkbox" id="avail" name="avail" value="1"> On the shelf now</label>
+          <button class="btn ghost small" id="surprise" type="button">Surprise me</button>
         </div>
         <div class="chips" id="chips" aria-label="Genres"></div>
       </form>
@@ -772,6 +835,64 @@ def build_request(site):
          "request.html", "request", body)
 
 
+# ------------------------------------------------------------------ donate
+def build_donate(site):
+    d = site.get("donate") or {}
+    body = f"""    <header class="page-head wrap">
+      <span class="eyebrow">A second life for your books</span>
+      <h1>Donate Books</h1>
+      <p>{inline_md(d.get("intro") or "Tell us what you would like to give, and we will reply to arrange a drop-off at the club.")}</p>
+    </header>
+
+    <section class="wrap with-aside" style="padding-bottom:clamp(56px,8vw,96px)">
+      <div class="slip reveal">
+        <div class="slip-head">
+          <h2>Donation Slip</h2>
+          <div class="no">Book Club<br>IIT Kanpur</div>
+        </div>
+        <p class="intro">List the books you would like to give, or roughly how many and what kind. We will write back to confirm before you bring them.</p>
+        <p class="required-note"><span class="req">*</span> Required fields</p>
+        {form_open(site, "Book donation — Book Club website")}
+          <div class="form-grid">
+            <div class="field">
+              <label for="donorName">Your name <span class="req">*</span></label>
+              <input type="text" id="donorName" name="Name" autocomplete="name" required>
+            </div>
+            <div class="field">
+              <label for="donorEmail">IITK email ID <span class="req">*</span></label>
+              <input type="email" id="donorEmail" name="email" autocomplete="email" placeholder="username@iitk.ac.in" required>
+            </div>
+            <div class="field full">
+              <label for="donorBooks">Books you would like to donate <span class="req">*</span></label>
+              <textarea id="donorBooks" name="Books offered" rows="5" placeholder="Titles and authors, or e.g. “about 15 novels, mostly fantasy”" required></textarea>
+            </div>
+            <div class="field full">
+              <label for="donorWhen">When could you bring them?</label>
+              <input type="text" id="donorWhen" name="Drop-off time" placeholder="e.g. any weekday evening">
+            </div>
+            <div class="field full">
+              <label for="donorMsg">Anything else</label>
+              <textarea id="donorMsg" name="Message" rows="3"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn">Offer books {I["arrow"]}</button>
+          <p class="form-status" role="status" hidden></p>
+        </form>
+      </div>
+      <aside>
+        <div class="card">
+          <h3>What we take</h3>
+          <p class="muted" style="font-size:1.05rem">{inline_md(d.get("accept") or "Books in any genre and language, in readable condition.")}</p>
+        </div>
+        {timings_card(site)}
+        {socials_card(site)}
+      </aside>
+    </section>
+"""
+    page(site, "donate.html", "Donate Books - Book Club IIT Kanpur",
+         "Give your books a second life at the Book Club, IIT Kanpur.", "", "donate", body)
+
+
 # ------------------------------------------------------------------ contact & team
 def monogram(name):
     parts = name.split()
@@ -855,6 +976,7 @@ def build_contact(site, team):
       </div>
       <aside>
         {timings_card(site)}
+        {donate_card()}
         {socials_card(site)}
       </aside>
     </section>
@@ -1010,10 +1132,11 @@ def main():
 
     copy_static()
     build_blogs(site, posts)
-    build_home(site, posts, editions, stats)
+    build_home(site, posts, editions, stats, cat)
     build_rules(site, rules)
     build_catalogue(site, stats)
     build_request(site)
+    build_donate(site)
     build_contact(site, team)
     build_mellifluous(site, editions)
     build_404(site)

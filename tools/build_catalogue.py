@@ -9,7 +9,7 @@ Build the public catalogue file (data/catalogue.json) from Koha's book list.
                                   first refresh it from the shelf repository (the website build does this)
 
 Inputs (all public, no member data, no barcodes):
-  data/koha_books.json     Koha's titles: [record number, title, author, ISBN, copies, genre code]
+  data/koha_books.json     Koha's titles: [record number, title, author, ISBN, copies, genre code, date added]
                            (the genre code is the letters at the start of the barcode, e.g. FIC, BN)
   content/genres.json      genre code → genre name (editable in the admin panel)
   data/book_details.json   extra details per Koha record number, carried over from the old catalogue:
@@ -17,8 +17,11 @@ Inputs (all public, no member data, no barcodes):
                            ds (where the description came from), og (old genre, used if the code is unknown)
   tools/enrichment_cache.json   descriptions and covers found by enrich_catalogue.py
 
-Each catalogue entry is one title: {"k": [record numbers], "t", "a", "g", "n": copies, "r", "i", "d", "ds"}.
-The catalogue page uses "k" to show live shelf status.
+Each catalogue entry is one title: {"k": [record numbers], "t", "a", "g", "n": copies, "ad": date added,
+"r", "i", "d", "ds"}. The catalogue page uses "k" to show live shelf status.
+
+With --fetch, the shelf repository's status.json is also read, and its "most borrowed this semester" list
+is saved to data/popular.json for the home page (that file is not kept in the repository).
 """
 import csv
 import json
@@ -35,6 +38,7 @@ KOHA = os.path.join(ROOT, "data", "koha_books.json")
 DETAILS = os.path.join(ROOT, "data", "book_details.json")
 GENRES = os.path.join(ROOT, "content", "genres.json")
 CACHE = os.path.join(HERE, "enrichment_cache.json")
+POPULAR = os.path.join(ROOT, "data", "popular.json")
 OUT = os.path.join(ROOT, "data", "catalogue.json")
 
 SMALL = set("a an and as at but by for from in into nor of on or over the to under upon via with "
@@ -99,12 +103,39 @@ def is_test(row):
 
 # ---------------------------------------------------------------- refreshing Koha's list
 def valid_books(rows):
+    """Rows of [record number, title, author, ISBN, copies, genre code, date added]; older lists lack the date."""
     ok = isinstance(rows, list) and all(
-        isinstance(r, list) and len(r) == 6 and isinstance(r[0], int) and isinstance(r[4], int)
-        and all(isinstance(v, str) for v in (r[1], r[2], r[3], r[5])) for r in rows)
+        isinstance(r, list) and len(r) in (6, 7) and isinstance(r[0], int) and isinstance(r[4], int)
+        and all(isinstance(v, str) for v in r[1:4] + r[5:]) for r in rows)
     if not ok or len(rows) < 100:
         raise ValueError("Koha's book list looks wrong")
-    return rows
+    return [r + [""] * (7 - len(r)) for r in rows]
+
+
+def keep_dates(rows):
+    """A list without dates (from an older club-computer program) keeps the dates already known."""
+    if all(r[6] for r in rows) or not os.path.exists(KOHA):
+        return rows
+    known = {r[0]: r[6] for r in valid_books(json.load(open(KOHA, encoding="utf-8"))["books"]) if r[6]}
+    return [r[:6] + [r[6] or known.get(r[0], "")] for r in rows]
+
+
+def save_popular(status_url):
+    """The "most borrowed this semester" list from the shelf status, for the home page."""
+    try:
+        req = urllib.request.Request(status_url, headers={"User-Agent": "bookclub-website-build"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            pop = json.load(r).get("popular") or {}
+        top = [[int(bn), int(n)] for bn, n in pop.get("top", [])][:30]
+        since = str(pop.get("since", ""))
+        if not re.fullmatch(r"\d{4}-\d\d-\d\d", since):
+            raise ValueError("no popular list yet")
+    except (OSError, ValueError, TypeError, AttributeError) as e:
+        print(f"No 'most borrowed' list ({e}).")
+        return
+    with open(POPULAR, "w", encoding="utf-8") as fh:
+        json.dump({"since": since, "top": top}, fh)
+    print(f"Saved data/popular.json: {len(top)} titles borrowed since {since}")
 
 
 def from_survey(path):
@@ -117,15 +148,18 @@ def from_survey(path):
         if r.get("lost", "0") not in ("0", "") or r.get("withdrawn", "0") not in ("0", ""):
             continue
         bn = int(r["biblionumber"])
-        rec = recs.setdefault(bn, {"t": clean(r["title"]), "a": clean(r["author"]), "isbn": r["isbn"], "n": 0, "bc": []})
+        rec = recs.setdefault(bn, {"t": clean(r["title"]), "a": clean(r["author"]), "isbn": r["isbn"], "n": 0, "bc": [], "ad": ""})
         rec["n"] += 1
+        added = (r.get("added") or "")[:10]
+        if re.fullmatch(r"\d{4}-\d\d-\d\d", added) and added > rec["ad"]:
+            rec["ad"] = added
         if r["barcode"].strip():
             rec["bc"].append(r["barcode"].strip())
     rows = []
     for bn, rec in sorted(recs.items()):
         isbn = re.sub(r"[^0-9Xx]", "", re.split(r"[|\s(]", rec["isbn"].strip() + " ")[0])
         code = re.match(r"[A-Za-z]*", min(rec["bc"]) if rec["bc"] else "").group().upper()[:12]
-        rows.append([bn, rec["t"], rec["a"], isbn, rec["n"], code])
+        rows.append([bn, rec["t"], rec["a"], isbn, rec["n"], code, rec["ad"]])
     return rows
 
 
@@ -146,10 +180,12 @@ def main():
             sys.exit(f"Could not read the survey ({e}); data/koha_books.json left unchanged.")
     elif args[:1] == ["--fetch"] and len(args) == 2:
         try:
-            rows = valid_books(fetch(args[1]))
+            rows = keep_dates(valid_books(fetch(args[1])))
         except (OSError, ValueError) as e:
             print(f"Could not fetch Koha's book list ({e}); using data/koha_books.json as it is.")
             rows = None
+        if args[1].endswith("/books.json"):
+            save_popular(args[1][: -len("books.json")] + "status.json")
     elif not args:
         rows = None
     else:
@@ -159,7 +195,7 @@ def main():
             json.dump({"v": 1, "books": rows}, fh, ensure_ascii=False, separators=(",", ":"))
         print(f"Updated data/koha_books.json: {len(rows)} Koha records")
 
-    books = json.load(open(KOHA, encoding="utf-8"))["books"]
+    books = valid_books(json.load(open(KOHA, encoding="utf-8"))["books"])
     details = json.load(open(DETAILS, encoding="utf-8")) if os.path.exists(DETAILS) else {}
     table = {g["code"].strip().upper(): g["genre"].strip()
              for g in json.load(open(GENRES, encoding="utf-8")).get("codes", []) if g.get("code") and g.get("genre")}
@@ -169,9 +205,11 @@ def main():
     for row in books:
         if is_test(row):
             continue
-        bn, title, author, _isbn, copies, code = row
+        bn, title, author, _isbn, copies, code, added = row
         extra = details.get(str(bn), {})
         b = {"k": [bn], "t": extra.get("t") or smart_case(title), "a": extra.get("a") or smart_case(author), "n": copies}
+        if added:
+            b["ad"] = added
         g = genre_for(code, table) or extra.get("og", "")
         if g:
             b["g"] = g
@@ -189,6 +227,8 @@ def main():
             e = entries[key]
             e["k"].append(bn)
             e["n"] += copies
+            if added > e.get("ad", ""):
+                e["ad"] = added
             for f in ("g", "r", "i", "d", "ds"):
                 if f in b and f not in e:
                     e[f] = b[f]
