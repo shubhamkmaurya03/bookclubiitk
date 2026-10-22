@@ -549,7 +549,7 @@ def build_home(site, posts, editions, stats):
             <button class="btn" type="submit">Search</button>
           </form>
           <div class="hero-actions">
-            <a href="catalogue.html">Browse all {stats['books']:,} books</a>
+            <a href="catalogue.html">Browse all {stats['books_round']} books</a>
             <a href="request.html">Request a book</a>
             <a href="rules.html">How borrowing works</a>
           </div>
@@ -659,7 +659,7 @@ def build_catalogue(site, stats):
     body = f"""    <header class="page-head wrap">
       <span class="eyebrow">The card catalogue</span>
       <h1>Catalogue</h1>
-      <p>Search our {stats['books']:,} books ({stats['titles']:,} titles) by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
+      <p>Search our {stats['books_round']} books by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
     </header>
 
     <section class="wrap" style="padding-bottom:clamp(56px,8vw,96px)">
@@ -1003,8 +1003,10 @@ def main():
     cat = json.load(open(os.path.join(ROOT, "data", "catalogue.json"), encoding="utf-8"))
     genres = {b["g"] for b in cat if b.get("g")}
     CATALOGUE_GENRES.update(genres)
+    # The size claimed on the site is set in content/site.json (it includes magazines not in the catalogue).
     copies = sum(b.get("n", 1) for b in cat)
-    stats = {"books": copies, "titles": len(cat), "books_round": f"{copies // 1000 * 1000:,}+", "genres": len(genres) // 5 * 5}
+    claim = str(site.get("collection_size") or "").strip() or f"{copies // 1000 * 1000:,}+"
+    stats = {"books_round": claim, "genres": len(genres) // 5 * 5}
 
     copy_static()
     build_blogs(site, posts)

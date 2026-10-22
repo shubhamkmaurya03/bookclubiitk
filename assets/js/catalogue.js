@@ -113,12 +113,12 @@
     shown = 0;
     renderMore();
 
-    var n = results.length.toLocaleString("en-IN");
-    var what = terms.length ? ' for “<b>' + esc(qEl.value.trim()) + '</b>”' : "";
+    // Counts are shown only for word searches, not for the whole collection or a genre.
     var where = genre ? ' in <b>' + esc(genre) + '</b>' : "";
-    countEl.innerHTML = results.length
-      ? '<b>' + n + '</b> ' + (results.length === 1 ? "book" : "books") + what + where
-      : "";
+    countEl.innerHTML = !results.length ? ""
+      : terms.length ? '<b>' + results.length.toLocaleString("en-IN") + '</b> ' + (results.length === 1 ? "book" : "books") +
+                       ' for “<b>' + esc(qEl.value.trim()) + '</b>”' + where
+      : genre ? 'Books in <b>' + esc(genre) + '</b>' : "";
     if (!results.length) {
       grid.innerHTML = '<div class="empty"><b>Not on our shelves… yet.</b>' +
         'Try a different spelling, or <a href="request.html">request the book</a> and we will do our best to procure it.</div>';
@@ -215,7 +215,7 @@
     grid.insertAdjacentHTML("beforeend", next.map(card).join(""));
     shown += next.length;
     moreBtn.hidden = shown >= results.length;
-    moreBtn.textContent = "Show more books (" + (results.length - shown).toLocaleString("en-IN") + " left)";
+    moreBtn.textContent = "Show more books";
   }
 
   /* broken cover links fall back to a typeset cover */
