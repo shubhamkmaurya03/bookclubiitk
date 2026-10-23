@@ -749,7 +749,7 @@ def build_catalogue(site, stats):
         </div>
         <div class="search-tools">
           <label class="check" id="avail-wrap" hidden><input type="checkbox" id="avail" name="avail" value="1"> On the shelf now</label>
-          <button class="btn ghost small" id="surprise" type="button">Surprise me</button>
+          <button class="btn ghost small surprise-btn" id="surprise" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" fill="currentColor"/></svg>Surprise me</button>
         </div>
         <div class="chips" id="chips" aria-label="Genres"></div>
       </form>

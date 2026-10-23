@@ -686,7 +686,7 @@ select option { background: var(--paper-2); color: var(--ink); }
 .search-input input { padding-left: 32px; font-size: 1.3rem; }
 @media (max-width: 760px) { .search-row { grid-template-columns: 1fr 1fr; } .search-row .field:first-child { grid-column: 1 / -1; } }
 
-.search-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-top: 18px; }
+.search-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 26px; margin-top: 20px; }
 .search-tools .check { margin: 0; font-size: 1.05rem; align-items: center; }
 .search-tools .check input { margin-top: 0; }
 .btn.small { padding: .45em 1.1em; font-size: 1rem; }
@@ -951,3 +951,68 @@ select option { background: var(--paper-2); color: var(--ink); }
 .secs[open] .when-open { display: inline; }
 .secs .people.many { text-align: left; margin-top: 22px; padding-top: 22px; border-top: 1px dashed var(--rule); }
 .rating .src { font-variant: all-small-caps; letter-spacing: .08em; font-size: .95em; }
+
+/* ---- Surprise me: shelf, skipping light, a book that slides out and opens ---- */
+.surprise-btn svg { width: 1.05em; height: 1.05em; color: var(--gold); transition: transform .4s; }
+.surprise-btn:hover svg { transform: rotate(72deg) scale(1.15); }
+html.sx-open { overflow: hidden; }
+.sx { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+  background: rgba(27, 19, 14, .62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: sx-fade .25s ease-out; }
+.sx[hidden] { display: none; }
+.sx-panel { position: relative; width: min(720px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 10px; text-align: center;
+  padding: 30px clamp(16px, 4vw, 40px) 28px; box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .55); animation: sx-rise .4s cubic-bezier(.2, .8, .2, 1); }
+.sx-close { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none;
+  color: var(--ink-soft); font-size: 1.9rem; line-height: 1; cursor: pointer; }
+.sx-close:hover { color: var(--oxblood); background: var(--paper-3); }
+.sx-cap { font-family: var(--f-display); font-style: italic; font-size: 1.65rem; color: var(--oxblood); margin: 0 0 4px; min-height: 1.3em; }
+.sx-stage { perspective: 1600px; }
+.sx-shelf { padding-top: 44px; transition: opacity .35s, transform .35s; }
+.sx-shelf.gone { opacity: 0; transform: translateY(18px) scale(.97); }
+.sx-row { display: flex; align-items: flex-end; justify-content: center; gap: 3px; height: 230px; padding: 0 10px; }
+.sx-row .sx-spine { flex: 0 1 var(--w); min-width: 22px; cursor: default; transition: transform .14s ease-out, box-shadow .14s, opacity .45s; }
+.sx-row .sx-spine:hover { transform: none; }
+.sx-row .sx-spine span { font-size: .92rem; }
+.sx-row .sx-spine.lit { transform: translateY(-16px); color: #fff;
+  box-shadow: 0 0 0 2px var(--gold), 0 0 22px 2px rgba(214, 170, 80, .55), 0 14px 18px -10px rgba(0, 0, 0, .5); }
+.sx-row.picked .sx-spine:not(.pulled) { opacity: .35; }
+.sx-row .sx-spine.pulled { position: relative; z-index: 3; transform: translateY(-58px) rotate(-3deg) scale(1.06);
+  transition: transform .7s cubic-bezier(.2, .9, .25, 1.2), box-shadow .7s;
+  box-shadow: 0 0 0 2px var(--gold), 0 0 30px 4px rgba(214, 170, 80, .6), 0 26px 30px -14px rgba(0, 0, 0, .6); }
+.sx-book { position: relative; width: min(580px, 100%); margin: 0 auto; animation: sx-rise .45s cubic-bezier(.2, .8, .2, 1); }
+.sx-page { display: grid; grid-template-columns: 112px 1fr; gap: 22px; text-align: left; min-height: 230px; padding: 22px 24px;
+  background: var(--paper-2); border: 1px solid var(--rule-soft); border-radius: 4px 10px 10px 4px;
+  box-shadow: inset 8px 0 12px -8px rgba(0, 0, 0, .28), 0 20px 34px -20px rgb(var(--shadow) / .7); }
+.sx-page .cover { width: 112px; aspect-ratio: 2 / 3; border-radius: 1px 4px 4px 1px; overflow: hidden; background: var(--paper-3); position: relative;
+  box-shadow: 0 8px 14px -8px rgb(var(--shadow) / .7); }
+.sx-page .cover img { width: 100%; height: 100%; object-fit: cover; }
+.sx-page .made-cover { font-size: .8rem; }
+.sx-text h3 { font-size: 1.6rem; line-height: 1.15; margin: 0 0 .15em; overflow-wrap: anywhere; }
+.sx-text .author { color: var(--ink-soft); font-style: italic; font-size: 1.1rem; margin-bottom: .5em; }
+.sx-text .book-tags { margin-top: 0; }
+.sx-desc { font-size: 1.02rem; line-height: 1.5; color: var(--ink-soft); margin: .8em 0 0; }
+.sx-flap { position: absolute; inset: 0; transform-origin: left center; transform-style: preserve-3d; pointer-events: none;
+  transition: transform 1.05s cubic-bezier(.55, .05, .25, 1), opacity .3s .8s; }
+.sx-flap-front, .sx-flap-back { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 4px 10px 10px 4px; }
+.sx-flap-front { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 26px 40px;
+  color: #f1e2c0; text-align: center;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .35), rgba(255, 255, 255, .06) 6%, rgba(0, 0, 0, 0) 14%, rgba(0, 0, 0, .12)), var(--c);
+  box-shadow: inset 0 0 0 10px rgba(0, 0, 0, .08), inset 0 0 0 11px rgba(232, 200, 130, .55), 0 18px 30px -16px rgba(0, 0, 0, .6); }
+.sx-flap-front b { font-family: var(--f-display); font-weight: 600; font-size: 1.9rem; line-height: 1.1; }
+.sx-flap-front i { font-size: 1.1rem; opacity: .85; }
+.sx-flap-back { transform: rotateY(180deg); background: repeating-linear-gradient(0deg, var(--paper-3) 0 2px, var(--paper-2) 2px 9px); }
+.sx-book.open .sx-flap { transform: rotateY(-165deg); opacity: 0; }
+.sx-book.still .sx-flap { display: none; }
+.sx-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; }
+@keyframes sx-fade { from { opacity: 0; } }
+@keyframes sx-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+@media (max-width: 560px) {
+  .sx-row { height: 190px; }
+  .sx-shelf { padding-top: 36px; }
+  .sx-row .sx-spine span { font-size: .8rem; }
+  .sx-page { grid-template-columns: 84px 1fr; gap: 16px; padding: 18px; }
+  .sx-page .cover { width: 84px; }
+  .sx-text h3 { font-size: 1.35rem; }
+  .sx-flap-front b { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { .sx, .sx-panel, .sx-book { animation: none; } }

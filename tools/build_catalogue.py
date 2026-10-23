@@ -79,6 +79,12 @@ BOILER_WHOLE = re.compile(r"^(?:This work has been selected by scholars as being
 
 def clean_description(d):
     d = BOILER_PREFIX.sub("", d or "").strip()
+    d = re.sub(r"\[([^\]]+)\]\[\d+\]", r"\1", d)                    # [The Dark Tower][1]
+    d = re.sub(r"\[([^\]]+)\]\((?:https?:)?[^)]*\)", r"\1", d)       # [text](link)
+    d = re.sub(r"\s*\[\d+\](?::\s*\S+)?", "", d)                     # stray [1] and [1]: link
+    d = re.sub(r"\*\*([^*]+)\*\*", r"\1", d)                          # **bold**
+    d = re.sub(r"\*{2,}", " ", d)                                        # leftover *** rules
+    d = " ".join(d.split())
     return "" if BOILER_WHOLE.match(d) or len(d) < 40 else d
 
 

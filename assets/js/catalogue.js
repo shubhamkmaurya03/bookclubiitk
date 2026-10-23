@@ -157,28 +157,155 @@
     }
   }
 
-  /* ---- surprise me: one random book from the current genre / search, preferring ones on the shelf ---- */
-  function surprise() {
-    var terms = norm(qEl.value).split(/\s+/).filter(Boolean);
-    var pool = filtered(terms);
+  /* ---- surprise me: a shelf opens, a light skips along the spines, one book slides out and opens ---- */
+  var sx = null, sxTimers = [], sxReturn = null;
+  var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function surprisePool() {
+    var pool = filtered(norm(qEl.value).split(/\s+/).filter(Boolean));
     if (shelf) {
       var free = pool.filter(onShelf);
       if (free.length) pool = free;
     }
-    if (!pool.length) { run(); return; }
-    var pick = pool[Math.floor(Math.random() * pool.length)];
-    markChips();
-    writeURL();
-    grid.innerHTML = card(pick);
-    moreBtn.hidden = true;
-    countEl.innerHTML = 'A surprise pick' + (genre ? ' from <b>' + esc(genre) + '</b>' : "") +
-      ' · <button type="button" class="linkish" id="again">pick another</button>' +
-      ' · <button type="button" class="linkish" id="showall">show all</button>';
+    return pool;
   }
-  countEl.addEventListener("click", function (e) {
-    if (e.target.id === "again") surprise();
-    if (e.target.id === "showall") run();
-  });
+  function later(fn, ms) { sxTimers.push(setTimeout(fn, ms)); }
+  function stopTimers() { sxTimers.forEach(clearTimeout); sxTimers = []; }
+  function sample(list, n, skip) {
+    var out = [], tries = 0;
+    while (out.length < n && tries++ < n * 20 && list.length > 1) {
+      var b = list[Math.floor(Math.random() * list.length)];
+      if (b !== skip && out.indexOf(b) === -1) out.push(b);
+    }
+    return out;
+  }
+  function buildSurprise() {
+    sx = document.createElement("div");
+    sx.className = "sx";
+    sx.hidden = true;
+    sx.innerHTML =
+      '<div class="sx-panel" role="dialog" aria-modal="true" aria-labelledby="sx-cap">' +
+      '<button type="button" class="sx-close" aria-label="Close">&times;</button>' +
+      '<p class="sx-cap" id="sx-cap" aria-live="polite"></p>' +
+      '<div class="sx-stage"><div class="sx-shelf"><div class="sx-row"></div><div class="shelf-plank"></div></div>' +
+      '<div class="sx-book" hidden></div></div>' +
+      '<div class="sx-actions" hidden><button type="button" class="btn" data-sx="again">Pick another</button>' +
+      '<button type="button" class="btn ghost" data-sx="show">Show in catalogue</button></div></div>';
+    document.body.appendChild(sx);
+    sx.addEventListener("error", function (e) {      // broken cover link: show the typeset cover
+      var img = e.target;
+      if (img.tagName === "IMG" && img.dataset.fallback) img.outerHTML = img.dataset.fallback;
+    }, true);
+    sx.addEventListener("click", function (e) {
+      if (e.target === sx || e.target.closest(".sx-close")) return closeSurprise();
+      var act = e.target.closest("[data-sx]");
+      if (!act) return;
+      if (act.getAttribute("data-sx") === "again") return spin();
+      var b = sx._pick;
+      closeSurprise();
+      qEl.value = b.t; byEl.value = "title"; genre = ""; availEl.checked = false;
+      run();
+      grid.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (sx.hidden) return;
+      if (e.key === "Escape") return closeSurprise();
+      if (e.key === "Tab") {                       // keep the keyboard inside the dialog
+        var f = [].filter.call(sx.querySelectorAll("button"), function (x) { return !x.closest("[hidden]"); });
+        var i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+      }
+    });
+  }
+  function openSurprise() {
+    if (!sx) buildSurprise();
+    sxReturn = document.activeElement;
+    sx.hidden = false;
+    document.documentElement.classList.add("sx-open");
+    sx.querySelector(".sx-close").focus();
+    spin();
+  }
+  function closeSurprise() {
+    stopTimers();
+    sx.hidden = true;
+    document.documentElement.classList.remove("sx-open");
+    if (sxReturn && sxReturn.focus) sxReturn.focus();
+  }
+  function spin() {
+    stopTimers();
+    var cap = sx.querySelector(".sx-cap"), row = sx.querySelector(".sx-row"), shelfEl = sx.querySelector(".sx-shelf");
+    var bookEl = sx.querySelector(".sx-book"), actions = sx.querySelector(".sx-actions");
+    var pool = surprisePool();
+    shelfEl.hidden = false; bookEl.hidden = true; actions.hidden = true;
+    shelfEl.classList.remove("gone"); row.classList.remove("picked");
+    if (!pool.length) {
+      row.innerHTML = "";
+      cap.textContent = "Nothing on these shelves matches. Try another genre.";
+      return;
+    }
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    sx._pick = pick;
+    if (pick.i) {                                   // fetch the cover while the light is moving
+      var pre = new Image();
+      pre.referrerPolicy = "no-referrer";
+      pre.src = pick.i;
+    }
+    var n = window.innerWidth < 640 ? 9 : 13;
+    var list = sample(pool.length >= n ? pool : books, n - 1, pick);
+    var at = Math.floor(Math.random() * (list.length + 1));
+    list.splice(at, 0, pick);
+    row.innerHTML = list.map(function (b) {
+      var c = COVER_COLOURS[hash(b.t + b.a) % COVER_COLOURS.length];
+      var t = b.t.length > 26 ? b.t.slice(0, 24) + "…" : b.t;
+      return '<span class="spine sx-spine" style="--c:' + c + ';--h:' + (72 + hash(b.t) % 27) + '%;--w:' +
+        (40 + hash(b.a + b.t) % 18) + 'px"><span>' + esc(t) + '</span></span>';
+    }).join("");
+    var spines = row.children;
+    cap.textContent = "Searching the shelves…";
+    if (calm) { cap.textContent = "Your surprise pick"; return reveal(pick); }
+    // A light skips along the spines twice, slowing down, and stops on the pick.
+    var steps = 2 * list.length + at + 1, t = 120;
+    for (var i = 0; i < steps; i++) {
+      t += 30 + Math.pow(i / steps, 3) * 210;
+      (function (k) {
+        later(function () {
+          for (var j = 0; j < spines.length; j++) spines[j].classList.toggle("lit", j === k % list.length);
+        }, t);
+      })(i);
+    }
+    later(function () {
+      row.classList.add("picked");
+      spines[at].classList.add("pulled");
+      cap.textContent = "Found one!";
+    }, t + 260);
+    later(function () { shelfEl.classList.add("gone"); }, t + 1150);
+    later(function () { cap.textContent = "Your surprise pick"; reveal(pick); }, t + 1500);
+  }
+  function reveal(b) {
+    var shelfEl = sx.querySelector(".sx-shelf"), bookEl = sx.querySelector(".sx-book"), actions = sx.querySelector(".sx-actions");
+    var c = COVER_COLOURS[hash(b.t + b.a) % COVER_COLOURS.length];
+    var desc = b.d ? (b.d.length > 300 ? b.d.slice(0, 297).replace(/\s+\S*$/, "") + "…" : b.d) : "";
+    var tags = "";
+    if (b.r) tags += '<span class="rating" title="Goodreads rating"><span class="stars" style="--pct:' + Math.min(100, b.r * 20) +
+      '%" aria-hidden="true"></span>' + b.r.toFixed(1) + '<span class="sr"> out of 5</span></span>';
+    if (b.g) tags += '<span class="tag">' + esc(b.g) + '</span>';
+    tags += avail(b);
+    bookEl.innerHTML =
+      '<div class="sx-page"><div class="cover">' + cover(b).replace(' loading="lazy"', "") + '</div><div class="sx-text">' +
+      '<h3>' + esc(b.t) + '</h3>' + (b.a ? '<div class="author">' + esc(b.a) + '</div>' : "") +
+      '<div class="book-tags">' + tags + '</div>' + (desc ? '<p class="sx-desc">' + esc(desc) + '</p>' : "") + '</div></div>' +
+      '<div class="sx-flap" aria-hidden="true"><div class="sx-flap-front" style="--c:' + c + '"><b>' +
+      esc(b.t.length > 60 ? b.t.slice(0, 57) + "…" : b.t) + '</b><i>' + esc(b.a) + '</i></div><div class="sx-flap-back"></div></div>';
+    shelfEl.hidden = true;
+    bookEl.hidden = false;
+    bookEl.classList.remove("open");
+    var finish = function () { actions.hidden = false; sx.querySelector('[data-sx="again"]').focus(); };
+    if (calm) { bookEl.classList.add("open", "still"); return finish(); }
+    bookEl.offsetWidth;                            // start closed, then let the cover swing open
+    later(function () { bookEl.classList.add("open"); }, 60);
+    later(finish, 900);
+  }
 
   function cover(b) {
     var colour = COVER_COLOURS[hash(b.t + b.a) % COVER_COLOURS.length];
@@ -314,7 +441,7 @@
   byEl.addEventListener("change", run);
   sortEl.addEventListener("change", run);
   availEl.addEventListener("change", run);
-  surpriseBtn.addEventListener("click", function () { if (ready) surprise(); });
+  surpriseBtn.addEventListener("click", function () { if (ready) openSurprise(); });
   form.addEventListener("submit", function (e) { e.preventDefault(); clearTimeout(timer); run(); });
   moreBtn.addEventListener("click", renderMore);
 
@@ -332,7 +459,8 @@
       });
       buildChips();
       ready = true;
-      if (wantSurprise) surprise(); else run();
+      run();
+      if (wantSurprise) openSurprise();
     })
     .catch(function () {
       grid.innerHTML = '<div class="empty"><b>The card drawer is stuck.</b>We could not load the catalogue just now. Please refresh the page in a moment.</div>';
