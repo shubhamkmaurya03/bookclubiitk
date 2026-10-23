@@ -27,7 +27,9 @@ iitk.ac.in, reads that file in the visitor's browser and shows **On the shelf**,
   `old_issues(itemnumber, issuedate)`, which it only counts.
 - **The GitHub token works only on the separate `bookclub-shelf` repository.** It cannot change the website or the
   admin panel. It is stored readable only by the `bookclub-shelf` system account on the club computer.
-- **No history.** Each update replaces the previous one, so nobody can browse when each book went out.
+- **Nothing personal, even over time.** Each update replaces the previous one on the branch, but GitHub's public
+  activity log still lists earlier updates, so someone could follow changes over time. That is why only counts and
+  future due dates are sent: due dates already passed are left out, and no member data is ever included.
 - **The website treats the file as data.** The catalogue accepts only record numbers, counts and dates from it and
   ignores anything else.
 
@@ -87,7 +89,12 @@ sudo -u bookclub-shelf python3 /opt/bookclub-shelf/shelf_sync.py --dry-run   # t
   log in again in the browser and it catches up.
 - **Needs a proxy for internet:** add `https_proxy=http://host:port` to `/etc/bookclub-shelf/env`.
 - **Koha upgraded or moved, or the scripts here changed:** `cd ~/bookclubiitk && git pull`, then run `install.sh` again
-  (answer N to keep the saved token).
+  (answer N to keep the saved token). The installer runs as root next to the library database, and anyone who can
+  edit the website repository can change it, so **look at what changed first**:
+  `git -C ~/bookclubiitk log -p ORIG_HEAD..HEAD -- tools/shelf` (empty output: nothing changed there).
+- **Token:** fine-grained only (it starts with `github_pat_`), limited to `bookclub-shelf` with Contents: Read and
+  write. The installer refuses classic `ghp_` tokens, which reach every repository of the account, and checks a new
+  token with GitHub before replacing the saved one.
 - **Turn it off:** `sudo systemctl disable --now bookclub-shelf.timer`, and empty the address in the admin panel.
 - **Remove completely:**
   ```

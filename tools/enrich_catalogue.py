@@ -121,8 +121,10 @@ def lookup_openlibrary(book):
         if not (titles_match(book["t"], doc.get("title")) and authors_match(book.get("a"), doc.get("author_name"))):
             continue
         out = {}
-        if doc.get("cover_i"):
+        if isinstance(doc.get("cover_i"), int):
             out["i"] = f"https://covers.openlibrary.org/b/id/{doc['cover_i']}-M.jpg"
+        if not re.fullmatch(r"/works/OL\d+W", str(doc.get("key", ""))):   # only ever ask openlibrary.org itself
+            return out
         if not book.get("d"):
             work = get_json("https://openlibrary.org" + doc["key"] + ".json")
             time.sleep(1)

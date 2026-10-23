@@ -10,7 +10,9 @@ the magazine and the home page text.
 2. **Ask the current admin to add you** as a collaborator on the repository, and accept the email invite.
 3. **Create an access token** (this is your password for the admin panel):
    - Go to https://github.com/settings/tokens → *Generate new token* → **Generate new token (classic)**.
-   - Note: `Book Club admin`. Expiration: until the end of your tenure.
+   - Note: `Book Club admin`. Expiration: **90 days** (make a new one when it expires).
+   - A classic token can reach every repository of your account, so delete it on that page when your tenure
+     ends, and never use it anywhere except the admin panel.
    - Tick the **`repo`** box only, then *Generate token*.
    - Copy the token (it starts with `ghp_`). GitHub shows it only once. Treat it like a password and never share it.
 

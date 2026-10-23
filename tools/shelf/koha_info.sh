@@ -10,9 +10,11 @@
 set -u
 [ "$(id -u)" -eq 0 ] || { echo "Please run with sudo: sudo bash $0"; exit 1; }
 
+umask 077   # the output (book list with barcodes) is readable only by its owner, not by other accounts
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$(cd "$HERE/../.." && pwd)/koha-info"
 mkdir -p "$OUT"
+chmod 700 "$OUT"
 REPORT="$OUT/report.txt"
 : > "$REPORT"
 say() { printf '%s\n' "$*" | tee -a "$REPORT"; }
@@ -42,9 +44,9 @@ for u in https://github.com https://api.github.com/zen; do
 done
 # Proxy settings, with any user name/password removed.
 for f in /etc/environment /etc/apt/apt.conf /etc/apt/apt.conf.d/*proxy*; do
-  [ -r "$f" ] && grep -i proxy "$f" 2>/dev/null | sed -E 's#://[^@/ ]*@#://#; s#^#'"$f"': #' | tee -a "$REPORT"
+  [ -r "$f" ] && grep -i proxy "$f" 2>/dev/null | sed -E 's#://[^ ]*@#://#; s#^#'"$f"': #' | tee -a "$REPORT"
 done
-env | grep -i '_proxy=' | sed -E 's#://[^@/ ]*@#://#' | tee -a "$REPORT"
+env | grep -i '_proxy=' | sed -E 's#://[^ ]*@#://#' | tee -a "$REPORT"
 
 # ------------------------------------------------------------ Koha instances
 koha_conf() {   # koha_conf <file> <field>: a field of the <config> section (never used for the password)
@@ -119,7 +121,10 @@ q "SELECT DATE_FORMAT(timestamp,'%Y-%m') AS month_last_edited, COUNT(*) AS copie
 section "Fields that might hold the OLD barcodes or the genre"
 for col in stocknumber copynumber itemcallnumber itemnotes cn_source uri; do
   q "SELECT '$col' AS field, COUNT(*) AS filled_in FROM items WHERE IFNULL(TRIM($col),'')<>''"
-  q "SELECT $col AS sample_values FROM items WHERE IFNULL(TRIM($col),'')<>'' ORDER BY RAND() LIMIT 8"
+done
+# Samples only of short code-like fields; free-text notes and links may hold names, so they are only counted.
+for col in stocknumber copynumber itemcallnumber cn_source; do
+  q "SELECT $col AS sample_values FROM items WHERE IFNULL(TRIM($col),'')<>'' AND CHAR_LENGTH($col)<=20 ORDER BY RAND() LIMIT 8"
 done
 q "SELECT 'itemnotes_nonpublic' AS field, COUNT(*) AS filled_in FROM items WHERE IFNULL(TRIM(itemnotes_nonpublic),'')<>''"
 q "SELECT 'more_subfields_xml' AS field, COUNT(*) AS filled_in FROM items WHERE IFNULL(TRIM(more_subfields_xml),'')<>''"

@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 
 from PIL import Image
@@ -30,6 +31,11 @@ PICS = os.path.join(ROOT, "assets", "instagram")
 IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 UA = {"User-Agent": "BookClubIITK-website/1.0"}
 SIZE = 600            # pictures are saved as 600 x 600 JPEGs
+FEED_HOSTS = ("feeds.behold.so",)
+PICTURE_HOSTS = ("behold.pictures", ".cdninstagram.com", ".fbcdn.net")   # where Behold serves pictures from
+MAX_FEED = 2 * 1024 * 1024        # bytes
+MAX_PICTURE = 15 * 1024 * 1024
+Image.MAX_IMAGE_PIXELS = 40_000_000
 
 
 def shortcode(url):
@@ -38,9 +44,25 @@ def shortcode(url):
     return m.group(1) if m else (url or "").strip()
 
 
-def get(url, timeout=60):
+def allowed(url, hosts):
+    """Only https links to the listed hosts (a name starting with "." also allows its subdomains)."""
+    parts = urllib.parse.urlsplit(url or "")
+    if parts.username or parts.password or "@" in parts.netloc or "\\" in parts.netloc or "%" in parts.netloc:
+        return False                      # no user-name part or tricks that hide the real server
+    host = (parts.hostname or "").lower()
+    return parts.scheme == "https" and any(host == h or (h.startswith(".") and host.endswith(h)) for h in hosts)
+
+
+def get(url, hosts, limit, timeout=60):
+    if not allowed(url, hosts):
+        raise ValueError(f"address not allowed: {url[:80]}")
     with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
-        return r.read()
+        if not allowed(r.geturl(), hosts):
+            raise ValueError("redirected to another server")
+        data = r.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError(f"larger than {limit // (1024 * 1024)} MB")
+    return data
 
 
 def clean_caption(text):
@@ -55,7 +77,10 @@ def save_picture(post, path):
            or post.get("thumbnailUrl") or (post.get("mediaUrl") if post.get("mediaType") != "VIDEO" else ""))
     if not url:
         return False
-    img = Image.open(io.BytesIO(get(url))).convert("RGB")
+    img = Image.open(io.BytesIO(get(url, PICTURE_HOSTS, MAX_PICTURE)), formats=["JPEG", "PNG", "WEBP"])
+    if img.width * img.height > Image.MAX_IMAGE_PIXELS:
+        raise ValueError("picture too large")
+    img = img.convert("RGB")
     side = min(img.size)                                   # square, centred
     left, top = (img.width - side) // 2, (img.height - side) // 2
     img = img.crop((left, top, left + side, top + side)).resize((SIZE, SIZE), Image.LANCZOS)
@@ -73,22 +98,31 @@ def main():
 
     if feed_url:
         try:
-            feed = json.loads(get(feed_url))
-        except Exception as e:                          # network, Behold down, bad JSON
+            feed = json.loads(get(feed_url, FEED_HOSTS, MAX_FEED))
+            if not isinstance(feed, dict):
+                raise ValueError("not a feed")
+        except Exception as e:                          # network, Behold down, bad JSON, wrong address
             print(f"Could not read the Instagram feed ({e}); keeping the saved posts.")
             feed = {}
         os.makedirs(PICS, exist_ok=True)
-        for post in feed.get("posts") or []:
+        posts = feed.get("posts") if isinstance(feed.get("posts"), list) else []
+        for post in posts[:50]:
+            if not isinstance(post, dict):
+                continue
             pid = str(post.get("id") or "")
-            link = post.get("permalink") or ""
-            if not re.fullmatch(r"\d{5,30}", pid) or not link.startswith("https://www.instagram.com/"):
+            link = post.get("permalink") if isinstance(post.get("permalink"), str) else ""
+            if not re.fullmatch(r"\d{5,30}", pid) or not re.fullmatch(r"https://www\.instagram\.com/[A-Za-z0-9_./-]{1,200}", link):
                 continue
             if shortcode(link) in hidden:
                 continue
-            when = datetime.datetime.strptime(post["timestamp"], "%Y-%m-%dT%H:%M:%S%z").astimezone(IST)
+            try:
+                when = datetime.datetime.strptime(str(post.get("timestamp")), "%Y-%m-%dT%H:%M:%S%z").astimezone(IST)
+            except ValueError:
+                print(f"Skipped {link}: no valid date.")
+                continue
             kind = {"VIDEO": "video", "CAROUSEL_ALBUM": "album"}.get(post.get("mediaType"), "image")
             entry = {"id": pid, "url": link, "time": when.isoformat(), "type": kind,
-                     "caption": clean_caption(post.get("prunedCaption") or post.get("caption")),
+                     "caption": clean_caption(str(post.get("prunedCaption") or post.get("caption") or "")),
                      "image": f"assets/instagram/{pid}.jpg"}
             pic = os.path.join(ROOT, entry["image"])
             if not os.path.exists(pic):
@@ -106,9 +140,10 @@ def main():
     for pid, p in list(saved.items()):                  # posts hidden in the admin panel
         if shortcode(p["url"]) in hidden:
             del saved[pid]
-            pic = os.path.join(ROOT, p["image"])
-            if os.path.exists(pic):
-                os.remove(pic)
+            if re.fullmatch(r"assets/instagram/\d{5,30}\.jpg", p.get("image", "")):   # only our own saved pictures
+                pic = os.path.join(ROOT, p["image"])
+                if os.path.exists(pic):
+                    os.remove(pic)
             print(f"Hidden: {p['url']}")
             changed = True
 

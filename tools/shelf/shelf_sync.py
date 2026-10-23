@@ -16,8 +16,10 @@ publishes two files to the "status" branch of the shelf repository:
                  The genre code is the letters at the start of the barcode (FIC, BN, …),
                  which the website turns into a genre; barcodes themselves are not published.
 
-Nothing is sent when nothing has changed. Each update replaces the previous one
-(no history is kept), then GitHub is asked to publish the files on GitHub Pages.
+Nothing is sent when nothing has changed. Each update replaces the previous one on the
+branch, then GitHub is asked to publish the files on GitHub Pages. GitHub's activity log
+still lists earlier updates, so nothing personal is ever sent: due dates already passed
+are left out (the website shows those books as "Issued" without a date anyway).
 
     python3 shelf_sync.py              normal run (what the timer does)
     python3 shelf_sync.py --dry-run    read Koha and print a summary; send nothing
@@ -107,8 +109,10 @@ def semester_start(today):
 
 def read_koha(cfg):
     out = {}
+    today = datetime.datetime.now(IST).date().isoformat()
     for bn, copies, issued, due in query(cfg, STATUS_SQL):
-        out[str(int(bn))] = [int(copies), int(float(issued)), due[:10] if re.match(r"\d{4}-\d\d-\d\d", due) else ""]
+        due = due[:10] if re.match(r"\d{4}-\d\d-\d\d", due) and due[:10] >= today else ""   # overdue: no date
+        out[str(int(bn))] = [int(copies), int(float(issued)), due]
     books = []
     for bn, title, author, isbn, copies, barcode, added in query(cfg, BOOKS_SQL):
         isbn = re.sub(r"[^0-9Xx]", "", re.split(r"[|\s(]", isbn.strip() + " ")[0])
@@ -121,6 +125,15 @@ def read_koha(cfg):
 
 
 # ---------------------------------------------------------------- GitHub
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect: Python would send the token along to wherever it points."""
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+OPENER = urllib.request.build_opener(NoRedirect)
+
+
 def api(cfg, token, method, path, body=None):
     req = urllib.request.Request(
         cfg["api"].rstrip("/") + "/repos/" + cfg["repo"] + path,
@@ -130,7 +143,7 @@ def api(cfg, token, method, path, body=None):
                  "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "bookclub-shelf-sync",
                  "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with OPENER.open(req, timeout=60) as r:
             data = r.read()
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:300]

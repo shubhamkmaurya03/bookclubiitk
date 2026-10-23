@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 
 from enrich_catalogue import is_english
@@ -107,15 +108,37 @@ def is_test(row):
     return row[5].startswith("TEST") or re.fullmatch(r"test\s*\d*", row[1].strip(), re.I)
 
 
+COVER_HOSTS = ("covers.openlibrary.org", "images.gr-assets.com", "books.google.com", "books.googleusercontent.com")
+
+
+def cover_ok(url):
+    parts = urllib.parse.urlsplit(url if isinstance(url, str) else "")
+    return parts.scheme == "https" and parts.hostname in COVER_HOSTS and not parts.username and "@" not in parts.netloc
+
+
 # ---------------------------------------------------------------- refreshing Koha's list
 def valid_books(rows):
-    """Rows of [record number, title, author, ISBN, copies, genre code, date added]; older lists lack the date."""
+    """Rows of [record number, title, author, ISBN, copies, genre code, date added]; older lists lack the date.
+    The list comes from the club computer, so anything unexpected rejects the whole list."""
     ok = isinstance(rows, list) and all(
-        isinstance(r, list) and len(r) in (6, 7) and isinstance(r[0], int) and isinstance(r[4], int)
-        and all(isinstance(v, str) for v in r[1:4] + r[5:]) for r in rows)
-    if not ok or len(rows) < 100:
+        isinstance(r, list) and len(r) in (6, 7)
+        and type(r[0]) is int and 0 < r[0] < 10**9 and type(r[4]) is int and 0 <= r[4] < 10000
+        and all(isinstance(v, str) for v in r[1:4] + r[5:])
+        and len(r[1]) <= 500 and len(r[2]) <= 300 and len(r[3]) <= 40
+        and re.fullmatch(r"[A-Za-z]{0,12}", r[5]) and (len(r) == 6 or re.fullmatch(r"(\d{4}-\d\d-\d\d)?", r[6]))
+        for r in rows)
+    if not ok or not 100 <= len(rows) <= 100000:
         raise ValueError("Koha's book list looks wrong")
     return [r + [""] * (7 - len(r)) for r in rows]
+
+
+def read_json(url, limit):
+    req = urllib.request.Request(url, headers={"User-Agent": "bookclub-website-build"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        raw = r.read(limit + 1)
+    if len(raw) > limit:
+        raise ValueError(f"larger than {limit // (1024 * 1024)} MB")
+    return json.loads(raw)
 
 
 def keep_dates(rows):
@@ -129,10 +152,8 @@ def keep_dates(rows):
 def save_popular(status_url):
     """The "most borrowed this semester" list from the shelf status, for the home page."""
     try:
-        req = urllib.request.Request(status_url, headers={"User-Agent": "bookclub-website-build"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            pop = json.load(r).get("popular") or {}
-        top = [[int(bn), int(n)] for bn, n in pop.get("top", [])][:30]
+        pop = read_json(status_url, 5 * 1024 * 1024).get("popular") or {}
+        top = [[int(bn), min(max(int(n), 0), 10000)] for bn, n in pop.get("top", [])[:30]]
         since = str(pop.get("since", ""))
         if not re.fullmatch(r"\d{4}-\d\d-\d\d", since):
             raise ValueError("no popular list yet")
@@ -170,10 +191,17 @@ def from_survey(path):
 
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "bookclub-website-build"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        data = json.load(r)
+    data = read_json(url, 30 * 1024 * 1024)
     return data.get("books") if isinstance(data, dict) and data.get("v") == 1 else None
+
+
+def not_shrunk(rows):
+    """Refuse a list that suddenly lost many books (a fault or tampering on the club computer)."""
+    if os.path.exists(KOHA):
+        before = len(json.load(open(KOHA, encoding="utf-8"))["books"])
+        if len(rows) < before * 0.8:
+            raise ValueError(f"it has {len(rows)} records, down from {before}; check Koha before accepting it")
+    return rows
 
 
 # ---------------------------------------------------------------- main
@@ -186,7 +214,7 @@ def main():
             sys.exit(f"Could not read the survey ({e}); data/koha_books.json left unchanged.")
     elif args[:1] == ["--fetch"] and len(args) == 2:
         try:
-            rows = keep_dates(valid_books(fetch(args[1])))
+            rows = not_shrunk(keep_dates(valid_books(fetch(args[1]))))
         except (OSError, ValueError) as e:
             print(f"Could not fetch Koha's book list ({e}); using data/koha_books.json as it is.")
             rows = None
@@ -255,6 +283,11 @@ def main():
     out = sorted(entries.values(), key=lambda b: re.sub(r"^[^0-9a-z]+", "", b["t"].lower()))
     for b in out:
         b["k"].sort()
+        # Text from Open Library / Google is shown escaped; covers and ratings are checked here as well.
+        if "i" in b and not cover_ok(b["i"]):
+            del b["i"]
+        if "r" in b and not (type(b["r"]) in (int, float) and 0 <= b["r"] <= 5):
+            del b["r"]
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
     print(f"Wrote {len(out)} titles ({sum(b['n'] for b in out)} copies) to data/catalogue.json"

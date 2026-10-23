@@ -29,10 +29,22 @@ jobs:
           ref: status
           path: out
           persist-credentials: false
-      - name: Keep only the published files
-        run: find out -mindepth 1 -maxdepth 1 ! -name status.json ! -name books.json -exec rm -rf {} +
+      - name: Keep only the two data files
+        # Copied into a fresh folder, and only if each is a plain file (not a link or a folder), under 30 MB
+        # and valid JSON. Nothing else on the status branch can reach the published site.
+        run: |
+          mkdir site
+          for f in status.json books.json; do
+            if [ -f "out/$f" ] && [ ! -L "out/$f" ] && [ "$(stat -c %s "out/$f")" -lt 31457280 ] \
+               && python3 -c 'import json, sys; json.load(open(sys.argv[1]))' "out/$f"; then
+              cp "out/$f" site/
+            else
+              echo "Left out $f: missing or not a valid data file."
+            fi
+          done
+          test -f site/status.json
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         with:
-          path: out
+          path: site
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5.0.1

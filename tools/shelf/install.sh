@@ -19,7 +19,7 @@
 set -euo pipefail
 
 INSTANCE="${1:-}"; REPO="${2:-}"
-if [ -z "$INSTANCE" ] || [[ ! "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+if [[ ! "$INSTANCE" =~ ^[a-z0-9_-]+$ ]] || [[ ! "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
   sed -n '2,6p' "$0"; exit 1
 fi
 [ "$(id -u)" -eq 0 ] || { echo "Please run with sudo."; exit 1; }
@@ -54,9 +54,11 @@ if mysql -e "SELECT 1" >/dev/null 2>&1; then
 elif [ -r /etc/mysql/debian.cnf ] && mysql --defaults-file=/etc/mysql/debian.cnf -e "SELECT 1" >/dev/null 2>&1; then
   dbadmin() { mysql --defaults-file=/etc/mysql/debian.cnf "$@"; }
 else
-  read -r -s -p "MySQL administrator (root) password: " ROOTPW; echo
-  ADMIN_CNF="$(mktemp)"; chmod 600 "$ADMIN_CNF"
-  printf '[client]\nuser=root\npassword=%s\n' "$ROOTPW" > "$ADMIN_CNF"; unset ROOTPW
+  IFS= read -r -s -p "MySQL administrator (root) password: " ROOTPW; echo
+  # Kept in /run (memory, never written to disk) and deleted on exit; quoted so any character works.
+  ADMIN_CNF="$(umask 077; mktemp -p /run bookclub-shelf.XXXXXX)"
+  ROOTPW="${ROOTPW//\\/\\\\}"; ROOTPW="${ROOTPW//\"/\\\"}"
+  printf '[client]\nuser=root\npassword="%s"\n' "$ROOTPW" > "$ADMIN_CNF"; unset ROOTPW
   dbadmin() { mysql --defaults-extra-file="$ADMIN_CNF" "$@"; }
 fi
 dbadmin -e "SELECT 1 FROM \`$DB\`.items LIMIT 1" >/dev/null || {
@@ -87,13 +89,27 @@ import json, sys
 json.dump({"repo": sys.argv[2], "database": sys.argv[3]}, open(sys.argv[1], "w"), indent=2)
 PY
 [ -f "$ETC/env" ] || printf '# Add a line like https_proxy=http://host:port here if this computer needs a proxy.\n' > "$ETC/env"
+NEWTOKEN=yes
 if [ -s "$ETC/token" ]; then
   read -r -p "A GitHub token is already saved. Replace it? [y/N] " ans
-  [[ "$ans" =~ ^[Yy] ]] && rm -f "$ETC/token"
+  [[ "$ans" =~ ^[Yy] ]] || NEWTOKEN=""
 fi
-if [ ! -s "$ETC/token" ]; then
-  read -r -s -p "Paste the GitHub token for $REPO (input is hidden): " TOKEN; echo
-  [[ "$TOKEN" =~ ^(github_pat_|ghp_)[A-Za-z0-9_]+$ ]] || { echo "That does not look like a GitHub token."; exit 1; }
+if [ -n "$NEWTOKEN" ]; then
+  IFS= read -r -s -p "Paste the GitHub token for $REPO (input is hidden): " TOKEN; echo
+  # Fine-grained tokens only (limited to one repository); a classic ghp_ token reaches every repository.
+  [[ "$TOKEN" =~ ^github_pat_[A-Za-z0-9_]+$ ]] || {
+    echo "That is not a fine-grained GitHub token (it should start with github_pat_). Nothing was changed."; exit 1; }
+  # Check it can write before the saved one is replaced (the token goes through stdin, never the command line):
+  # a "token-check" event needs Contents: Read and write, and no workflow reacts to that name.
+  printf '%s' "$TOKEN" | python3 -c 'import sys, urllib.request
+req = urllib.request.Request("https://api.github.com/repos/" + sys.argv[1] + "/dispatches", method="POST",
+    data=b"{\"event_type\": \"token-check\"}", headers={"Authorization": "Bearer " + sys.stdin.read().strip(),
+    "Accept": "application/vnd.github+json", "User-Agent": "bookclub-shelf-install"})
+try:
+    urllib.request.urlopen(req, timeout=30).close()
+except Exception as e:   # 401: wrong or expired; 403/404: no write access to this repository
+    sys.exit("GitHub did not accept the token for %s (%s)." % (sys.argv[1], getattr(e, "code", e)))' "$REPO" || {
+    echo "Nothing was changed. (If GitHub could not be reached, log in to the IITK firewall and try again.)"; exit 1; }
   printf '%s\n' "$TOKEN" > "$ETC/token"; unset TOKEN
 fi
 chown root:"$ACCOUNT" "$ETC"/my.cnf "$ETC"/config.json "$ETC"/token "$ETC"/env
@@ -119,10 +135,24 @@ EnvironmentFile=-$ETC/env
 ExecStart=/usr/bin/python3 $APP/shelf_sync.py
 StateDirectory=bookclub-shelf
 TimeoutStartSec=5min
+UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes
-ProtectSystem=full
+PrivateDevices=yes
+ProtectSystem=strict
 ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
 UNIT
 cat > /etc/systemd/system/bookclub-shelf.timer <<UNIT
 [Unit]
@@ -145,6 +175,11 @@ sudo -u "$ACCOUNT" python3 "$APP/shelf_sync.py" --dry-run
 echo "Sending the first update to GitHub…"
 sudo -u "$ACCOUNT" bash -c "set -a; . '$ETC/env'; exec python3 '$APP/shelf_sync.py' --force"
 chown -R "$ACCOUNT:$ACCOUNT" /var/lib/bookclub-shelf
+# One full run (database, token and network) under the service's own sandboxed settings, so a problem shows up
+# now rather than silently later. Forgetting the last state makes it send again instead of finding nothing new.
+rm -f /var/lib/bookclub-shelf/state.json
+systemctl start bookclub-shelf.service || {
+  echo "The sync failed when run as a service. See: journalctl -u bookclub-shelf -n 30 --no-pager"; exit 1; }
 systemctl enable --now bookclub-shelf.timer
 echo
 echo "Done. The shelf status now updates every 2 minutes while this computer is on."

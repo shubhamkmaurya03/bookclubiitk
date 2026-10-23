@@ -116,14 +116,21 @@ def load_json(name):
 
 def inline_md(text):
     """Inline Markdown: links, bold, italics, code. Input is plain text."""
-    s = html.escape(str(text or ""), quote=False)
+    s = html.escape(str(text or "").replace("\x00", ""), quote=False)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
-               lambda m: (f'<a href="{safe_url(m.group(2), "Text link").replace(chr(34), "&quot;")}">{m.group(1)}</a>'
-                          if safe_url(m.group(2), "Text link") else m.group(1)), s)
+    hrefs = []   # link addresses are held aside so bold/italics never reach inside them
+
+    def link(m):
+        url = safe_url(m.group(2), "Text link")
+        if not url:
+            return m.group(1)
+        hrefs.append(url.replace('"', "&quot;"))
+        return f'<a href="\x00{len(hrefs) - 1}\x00">{m.group(1)}</a>'
+    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, s)
     s = re.sub(r"(\*\*|__)(.+?)\1", r"<strong>\2</strong>", s)
     s = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", s)
     s = re.sub(r"(?<![\w_])_(?!\s)(.+?)(?<!\s)_(?![\w_])", r"<em>\1</em>", s)
+    s = re.sub(r"\x00(\d+)\x00", lambda m: hrefs[int(m.group(1))], s)
     s = s.replace("₹", '<span class="rs">₹</span>')
     return s
 
@@ -348,6 +355,13 @@ def socials_card(site):
 
 
 # ------------------------------------------------------------------ blogs
+def read_minutes(value):
+    try:
+        return min(max(int(value), 1), 120)
+    except (TypeError, ValueError, OverflowError):
+        return 3
+
+
 def load_blogs():
     folder = os.path.join(CONTENT, "blogs")
     posts = []
@@ -373,11 +387,15 @@ def load_blogs():
         if not isinstance(d, datetime.date):
             warnings.append(f"{fname}: no valid date, using today")
             d = datetime.date.today()
-        stem = os.path.splitext(fname)[0]
-        page_name = (meta.get("page") or "").strip() or f"{stem}.html"
+        stem = re.sub(r"[^A-Za-z0-9_-]+", "-", os.path.splitext(fname)[0]).strip("-") or "post"
+        page_name = str(meta.get("page") or "").strip() or f"{stem}.html"
         if not page_name.endswith(".html"):
             page_name += ".html"
-        if page_name in RESERVED:
+        # A plain file name only: no folders, no "javascript:" and the like, no clash with the club pages.
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _.,'()-]*\.html", page_name) or ".." in page_name:
+            warnings.append(f"{fname}: page file name '{page_name}' is not allowed, using blog-{stem}.html")
+            page_name = f"blog-{stem}.html"
+        if page_name.lower() in RESERVED:
             page_name = f"blog-{stem}.html"
         title = meta.get("title") or meta.get("book_title") or stem
         book_title = meta.get("book_title") or title
@@ -392,16 +410,16 @@ def load_blogs():
         posts.append({
             "file": page_name, "title": book_title, "heading": title,
             "book_author": meta.get("book_author") or "", "by": meta.get("reviewer") or "Book Club",
-            "date": d, "date_label": d.strftime("%B %Y"), "mins": meta.get("read_minutes") or 3,
+            "date": d, "date_label": d.strftime("%B %Y"), "mins": read_minutes(meta.get("read_minutes")),
             "img": cover, "paras": paras,
             "excerpt": (txt[:220].rsplit(" ", 1)[0] + "…") if len(txt) > 220 else txt,
         })
     posts.sort(key=lambda p: p["date"], reverse=True)
     seen = set()
     for p in posts:
-        if p["file"] in seen:
+        if p["file"].lower() in seen:
             warnings.append(f"two posts use the page name {p['file']}")
-        seen.add(p["file"])
+        seen.add(p["file"].lower())
     return posts
 
 
@@ -666,7 +684,7 @@ def build_home(site, posts, editions, stats, cat):
             <button class="btn" type="submit">Search</button>
           </form>
           <div class="hero-actions">
-            <a href="catalogue.html">Browse all {stats['books_round']} books</a>
+            <a href="catalogue.html">Browse all {esc(stats['books_round'])} books</a>
             <a href="request.html">Request a book</a>
             <a href="rules.html">How borrowing works</a>
             <a href="catalogue.html?surprise=1">Surprise me</a>
@@ -681,7 +699,7 @@ def build_home(site, posts, editions, stats, cat):
 
     <section class="band" style="margin-top:clamp(48px,7vw,80px)" aria-label="The club in numbers">
       <div class="wrap stats">
-        <div class="stat"><b>{stats['books_round']}</b><span>books on our shelves</span></div>
+        <div class="stat"><b>{esc(stats['books_round'])}</b><span>books on our shelves</span></div>
         <div class="stat"><b>{stats['genres']}+</b><span>genres</span></div>
         <div class="stat"><b>7</b><span>days a week</span></div>
         <div class="stat"><b>No</b><span>membership fee</span></div>
@@ -779,7 +797,7 @@ def build_catalogue(site, stats):
     body = f"""    <header class="page-head wrap">
       <span class="eyebrow">The card catalogue</span>
       <h1>Catalogue</h1>
-      <p>Search our {stats['books_round']} books by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
+      <p>Search our {esc(stats['books_round'])} books by title, author or genre. Ratings are from Goodreads. If we don’t have it, <a href="request.html">request it</a>.</p>
     </header>
 
     <section class="wrap" style="padding-bottom:clamp(56px,8vw,96px)">
@@ -1096,7 +1114,8 @@ def build_mellifluous(site, editions):
           {desc}
         </div>
         <div class="flipbook">
-          <iframe src="{esc(url)}" title="{esc(title)} flipbook" loading="lazy" allowfullscreen></iframe>
+          <iframe src="{esc(url)}" title="{esc(title)} flipbook" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
         </div>
         <div class="flipbook-foot"><a class="link-arrow" href="{esc(url)}" target="_blank" rel="noopener">Open full screen {I["expand"]}</a></div>
       </article>""")
@@ -1126,11 +1145,17 @@ def build_404(site):
 
 
 # ------------------------------------------------------------------ static files & images
+PIL_FORMATS = ["JPEG", "PNG", "WEBP", "GIF"]   # the only picture formats ever decoded
+
+
 def has_location(path):
+    """True if the picture carries GPS data, or is too large to check safely (so it is not published unchecked)."""
     try:
-        with Image.open(path) as im:
+        with Image.open(path, formats=PIL_FORMATS) as im:
             exif = im.getexif()
             return bool(exif and exif.get_ifd(0x8825))
+    except Image.DecompressionBombError:
+        return True
     except Exception:
         return False
 
@@ -1148,30 +1173,49 @@ def copy_static():
         os.makedirs(dest_dir, exist_ok=True)
         for f in os.listdir(uploads):
             src = os.path.join(uploads, f)
-            if not os.path.isfile(src):
+            if not os.path.isfile(src) or f.startswith("."):
                 continue
             dest = os.path.join(dest_dir, f)
-            if f.lower().endswith(IMG_EXT) and not f.lower().endswith(".gif"):
+            ext = f.rsplit(".", 1)[-1].lower() if "." in f else ""
+            if ext == "gif":                      # animations are kept as they are, if they really are GIFs
                 try:
-                    with Image.open(src) as im:
-                        im = ImageOps.exif_transpose(im)
-                        im.thumbnail((1400, 1400))
-                        fmt = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}[f.rsplit(".", 1)[1].lower()]
-                        if fmt == "JPEG" and im.mode not in ("RGB", "L"):
-                            im = im.convert("RGB")
-                        im.save(dest, fmt, quality=82)
-                    continue
+                    if os.path.getsize(src) > 10 * 1024 * 1024:
+                        raise ValueError("larger than 10 MB")
+                    with Image.open(src, formats=["GIF"]):
+                        pass
+                    shutil.copy2(src, dest)
                 except Exception as e:
-                    warnings.append(f"could not process upload {f}: {e}")
-            shutil.copy2(src, dest)
-
+                    warnings.append(f"upload {f} left out: not a usable GIF ({e})")
+                continue
+            fmt = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}.get(ext)
+            if not fmt:                           # e.g. .svg or .html could carry a script: never published
+                warnings.append(f"upload {f} left out: only .jpg, .png, .webp and .gif pictures are published")
+                continue
+            try:
+                with Image.open(src, formats=[fmt]) as im:
+                    im = ImageOps.exif_transpose(im)
+                    im.thumbnail((1400, 1400))
+                    if fmt == "JPEG" and im.mode not in ("RGB", "L"):
+                        im = im.convert("RGB")
+                    im.save(dest, fmt, quality=82)    # saved fresh: no location or other metadata
+            except Exception as e:
+                if os.path.exists(dest):
+                    os.remove(dest)
+                warnings.append(f"upload {f} left out: it could not be read as a picture ({e})")
 
 def main():
     leaks = [os.path.relpath(os.path.join(dp, f), ROOT)
              for dp, _, files in os.walk(os.path.join(ROOT, "assets"))
              for f in files if f.lower().endswith(IMG_EXT) and has_location(os.path.join(dp, f))]
+    links = [os.path.relpath(os.path.join(dp, f), ROOT)
+             for top in ("assets", "data", "admin", "content")
+             for dp, ds, files in os.walk(os.path.join(ROOT, top)) for f in files + ds
+             if os.path.islink(os.path.join(dp, f))]
+    if links:
+        print("ERROR: these are links to other files, which are never published:\n  " + "\n  ".join(links))
+        sys.exit(1)
     if leaks:
-        print("ERROR: these images contain GPS location data. Remove them from the repository and upload a copy "
+        print("ERROR: these images contain GPS location data (or are too large to check). Remove them from the repository and upload a copy "
               "without location (the admin panel does this automatically):\n  " + "\n  ".join(leaks))
         sys.exit(1)
 
@@ -1191,7 +1235,7 @@ def main():
     # The size claimed on the site is set in content/site.json (it includes magazines not in the catalogue).
     copies = sum(b.get("n", 1) for b in cat)
     claim = str(site.get("collection_size") or "").strip() or f"{copies // 1000 * 1000:,}+"
-    stats = {"books_round": claim, "genres": len(genres) // 5 * 5}
+    stats = {"books_round": claim, "genres": len(genres) // 5 * 5}   # typed in the admin panel: escape where used
 
     copy_static()
     build_blogs(site, posts)

@@ -22,3 +22,8 @@ koha-info.zip
 
 # Most borrowed this semester, fetched by the website build (tools/build_catalogue.py --fetch)
 data/popular.json
+
+# Local only: screenshots, the Instagram announcement files and the coordinator handbook
+Screenshot*.png
+Instagram post - new website/
+Book Club Website Handbook.pdf

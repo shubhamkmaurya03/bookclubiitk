@@ -89,6 +89,27 @@ curl -sL https://unpkg.com/@sveltia/cms@$V/dist/sveltia-cms.js | openssl dgst -s
 ```
 Put the version in the script address and `sha384-` followed by the printed hash in `integrity`.
 
+## Updating the build tools
+
+`tools/requirements.txt` pins exact versions with download checksums, so the build refuses a tampered package.
+To move to a newer version, change the version number and regenerate the `--hash` lines from PyPI
+(`pip download <name>==<version> --no-deps` and `pip hash <file>`, one line per file listed on PyPI).
+The GitHub actions in `.github/workflows/publish.yml` are pinned to commits for the same reason.
+
+## Security notes
+
+- The admin panel (`admin/index.html`) loads only at `https://shubhamkmaurya03.github.io` (or localhost) and never
+  inside another site's frame, because Sveltia keeps the sign-in token in the browser for that site. If the
+  repository moves, change `HOME` there.
+- Uploads through the admin panel are published only as re-encoded .jpg/.png/.webp pictures (or .gif as they are);
+  anything else is left out with a warning.
+- Blog page file names must be plain names like `my-review.html`; anything else falls back to `blog-<file>.html`.
+- `build_catalogue.py --fetch` refuses a book list from the club computer with unexpected fields or with fewer than
+  80% of the previous records. If many books were really withdrawn at once, run
+  `python3 tools/build_catalogue.py --fetch <books.json address>` after moving `data/koha_books.json` aside, and commit.
+- The Instagram fetch accepts the feed only from `feeds.behold.so` and pictures only from Behold's and Instagram's
+  servers, with size limits.
+
 ## Building locally
 
 ```
