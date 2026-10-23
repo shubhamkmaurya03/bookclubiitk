@@ -8,7 +8,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "30 4 * * *"   # daily at 10:00 IST, to pick up books newly added in Koha
+    - cron: "17 */3 * * *"   # every 3 hours: new Instagram posts, books newly added in Koha
   workflow_dispatch:
 
 permissions:
@@ -30,6 +30,23 @@ jobs:
 
       - name: Install build tools
         run: pip install -r tools/requirements.txt
+
+      - name: Fetch new Instagram posts
+        # Reads the Behold feed in content/instagram.json and saves new posts (caption, link, a copy of the
+        # picture) to data/instagram.json and assets/instagram/. Nothing changes if the feed can't be read.
+        run: python tools/instagram_feed.py
+
+      - name: Save new Instagram posts to the repository
+        run: |
+          git add data/instagram.json assets/instagram
+          if git diff --cached --quiet; then
+            echo "No new Instagram posts to save."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -q -m "Instagram: new posts"
+            git pull -q --rebase && git push -q || echo "Could not save the posts this time; the next run will retry."
+          fi
 
       - name: Refresh the catalogue from Koha's latest book list
         # The club computer publishes books.json next to status.json (see tools/shelf/README.md).

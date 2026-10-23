@@ -50,7 +50,7 @@ NAV = [
     ("rules.html", "Rules"),
     ("catalogue.html", "Catalogue"),
     ("request.html", "Request a Book"),
-    ("blogs.html", "Blogs"),
+    ("blogs.html", "Blogs &amp; Events"),
     ("contact.html", "Contact Us"),
     ("mellifluous.html", "Mellifluous"),
 ]
@@ -398,9 +398,10 @@ def load_blogs():
     return posts
 
 
-def card_post(b):
+def card_post(b, kind=False):
     by = f"{esc(b['book_author'])} — reviewed by {esc(b['by'])}" if b["book_author"] else f"Reviewed by {esc(b['by'])}"
-    return f"""<a class="post-card reveal" href="{esc(b['file'])}">
+    attrs = f' data-kind="review" data-date="{b["date"].isoformat()}T00:00"' if kind else ""
+    return f"""<a class="post-card reveal" href="{esc(b['file'])}"{attrs}>
           <div class="post-cover"><img src="{esc(b['img'])}" alt="Cover of {esc(b['title'])}" loading="lazy" width="420" height="630"></div>
           <span class="post-meta">{b['date_label']} · {b['mins']} min read</span>
           <h3>{esc(b['title'])}</h3>
@@ -408,10 +409,50 @@ def card_post(b):
         </a>"""
 
 
+def load_instagram():
+    """Saved Instagram posts (tools/instagram_feed.py), minus any hidden in the admin panel."""
+    settings = load_json("instagram.json") if os.path.exists(os.path.join(CONTENT, "instagram.json")) else {}
+    path = os.path.join(ROOT, "data", "instagram.json")
+    events = json.load(open(path, encoding="utf-8")).get("posts", []) if os.path.exists(path) else []
+    code = lambda u: (re.search(r"/(?:p|reel|tv)/([A-Za-z0-9_-]+)", u or "") or [None, (u or "").strip()])[1]
+    hidden = {code(h) for h in settings.get("hidden") or [] if h}
+    events = [e for e in events if code(e.get("url")) not in hidden and asset_exists(e.get("image", ""))]
+    live = safe_url(settings.get("live_url"), "Instagram live address", web_only=True)
+    return events, live if live.startswith("https://") else ""
+
+
+def split_caption(text):
+    """First line as the card's title, the rest as a short excerpt."""
+    lines = [l.strip() for l in (text or "").split("\n") if l.strip()]
+    title = lines[0] if lines else "On Instagram"
+    if len(title) > 110:
+        title = title[:107].rsplit(" ", 1)[0] + "…"
+    rest = " ".join(lines[1:])
+    if len(rest) > 170:
+        rest = rest[:167].rsplit(" ", 1)[0] + "…"
+    return title, rest
+
+
+def card_event(e):
+    when = datetime.datetime.fromisoformat(e["time"])
+    title, rest = split_caption(e.get("caption"))
+    badge = {"video": '<span class="event-badge">▶ Video</span>', "album": '<span class="event-badge">Album</span>'}.get(e.get("type"), "")
+    return f"""<a class="post-card event-card" href="{esc(e['url'])}" target="_blank" rel="noopener" data-kind="event" data-id="{esc(e['id'])}" data-date="{esc(e['time'][:16])}">
+          <div class="event-pic"><img src="{esc(e['image'])}" alt="" loading="lazy" width="600" height="600">{badge}</div>
+          <span class="post-meta">Event · {when.day} {when.strftime("%B %Y")}</span>
+          <h3>{esc(title)}</h3>
+          {f'<span class="by">{esc(rest)}</span>' if rest else ''}
+          <span class="on-insta">View on Instagram {I["arrow"]}</span>
+        </a>"""
+
+
 def build_blogs(site, posts):
+    events, live = load_instagram()
     if posts:
         lead = posts[0]
-        cards = "\n        ".join(card_post(b) for b in posts[1:])
+        items = [(f"{b['date'].isoformat()}T00:00", card_post(b, kind=True)) for b in posts[1:]]
+        items += [(e["time"][:16], card_event(e)) for e in events]
+        cards = "\n        ".join(html for _, html in sorted(items, key=lambda x: x[0], reverse=True))
         lead_html = f"""<a class="lead-post reveal" href="{esc(lead['file'])}">
         <div class="post-cover"><img src="{esc(lead['img'])}" alt="Cover of {esc(lead['title'])}" width="420" height="630"></div>
         <div>
@@ -423,22 +464,31 @@ def build_blogs(site, posts):
         </div>
       </a>"""
     else:
-        cards, lead_html = "", '<p class="center muted">New reviews are on their way.</p>'
+        cards = "\n        ".join(card_event(e) for e in events)
+        lead_html = '<p class="center muted">New reviews are on their way.</p>'
+    live_attr = f' data-live="{esc(live)}"' if live else ""
     body = f"""    <header class="page-head wrap">
       <span class="eyebrow">From the reading room</span>
-      <h1>Book Reviews &amp; Blogs</h1>
-      <p>Reflections, Stories and more from Book Club IIT Kanpur.</p>
+      <h1>Blogs &amp; Events</h1>
+      <p>Reviews by our members, and what’s happening at the club, straight from our Instagram.</p>
     </header>
 
     <section class="wrap" style="padding-bottom:clamp(56px,8vw,96px)">
+      <div class="feed-filter" role="group" aria-label="Show">
+        <button type="button" class="chip" data-show="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-show="review" aria-pressed="false">Reviews</button>
+        <button type="button" class="chip" data-show="event" aria-pressed="false">Events</button>
+      </div>
       {lead_html}
-      <div class="posts">
+      <div class="posts" data-feed{live_attr}>
         {cards}
       </div>
+      <p class="center muted feed-empty" hidden>Nothing here yet.</p>
     </section>
 """
-    page(site, "blogs.html", "Blogs - Book Club IIT Kanpur", "Book reviews, reflections and stories from Book Club IIT Kanpur.",
-         "blogs.html", "blogs", body)
+    page(site, "blogs.html", "Blogs & Events - Book Club IIT Kanpur",
+         "Book reviews by members of Book Club IIT Kanpur, and the club's events from Instagram.",
+         "blogs.html", "blogs", body, '\n  <script src="assets/js/blogs.js" defer></script>')
 
     for i, b in enumerate(posts):
         newer = posts[i - 1] if i > 0 else None
@@ -467,7 +517,7 @@ def build_blogs(site, posts):
     <div class="wrap article-foot" style="padding-bottom:clamp(56px,8vw,96px)">
       <div class="fleuron" aria-hidden="true">❦</div>
       {pager}
-      <p style="margin-top:30px"><a class="link-arrow" href="blogs.html">← Back to all blogs</a></p>
+      <p style="margin-top:30px"><a class="link-arrow" href="blogs.html">← Back to Blogs &amp; Events</a></p>
     </div>
 """
         author = f" by {b['book_author']}" if b["book_author"] else ""
@@ -583,7 +633,7 @@ def build_home(site, posts, editions, stats, cat):
       <div class="wrap">
         <div class="section-head">
           <div><span class="eyebrow">From the reading room</span><h2>Latest reviews</h2></div>
-          <a class="link-arrow" href="blogs.html">All blogs {I["arrow"]}</a>
+          <a class="link-arrow" href="blogs.html">Blogs &amp; Events {I["arrow"]}</a>
         </div>
         <div class="posts featured">
         {latest}

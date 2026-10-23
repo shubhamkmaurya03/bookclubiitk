@@ -70,6 +70,14 @@ Then commit and push `data/`. `koha-info/` has barcodes and stays on your comput
 The club computer (Koha) publishes which books are issued every 2 minutes, and the catalogue page shows it.
 Setup, safety and day-to-day checks: [tools/shelf/README.md](tools/shelf/README.md).
 
+## Instagram posts (Blogs & Events)
+
+[Behold](https://behold.so) is connected to @bookclub_iitk and publishes its newest posts as a JSON feed (address in
+`content/instagram.json`). Every 3 hours the website build runs `tools/instagram_feed.py`, which saves new posts to
+`data/instagram.json` with a copy of each picture in `assets/instagram/`, and commits them. Saved posts are kept, so
+the page builds an archive. The Blogs & Events page also loads `data/instagram.json` live from GitHub Pages, so the
+IITK copy shows new posts without an upload. Hide a post: admin panel → *Club pages → Instagram → Hidden posts*.
+
 ## Updating the admin panel
 
 `admin/index.html` loads Sveltia CMS pinned to one version, with an integrity hash so that a tampered copy

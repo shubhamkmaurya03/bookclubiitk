@@ -1016,3 +1016,19 @@ html.sx-open { overflow: hidden; }
   .sx-flap-front b { font-size: 1.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { .sx, .sx-panel, .sx-book { animation: none; } }
+
+/* ---- Blogs & Events ---- */
+.feed-filter { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 0 0 clamp(30px, 5vw, 48px); }
+.feed-filter .chip { font-size: 1.08rem; padding: 6px 20px; }
+.lead-post[hidden], .post-card[hidden] { display: none; }
+.event-pic { position: relative; aspect-ratio: 1 / 1; border-radius: 6px; overflow: hidden; background: var(--paper-3); margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgb(var(--shadow) / .2), 0 20px 30px -22px rgb(var(--shadow) / .8); transition: transform .4s cubic-bezier(.2,.8,.2,1), box-shadow .4s; }
+.event-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.event-card:hover .event-pic { transform: translateY(-6px); box-shadow: 0 1px 2px rgb(var(--shadow) / .2), 0 28px 34px -22px rgb(var(--shadow) / .9); }
+.event-badge { position: absolute; top: 10px; right: 10px; padding: 2px 10px; border-radius: 99px; font-size: .9rem; font-variant: all-small-caps;
+  letter-spacing: .1em; color: #fff; background: rgba(27, 19, 14, .62); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.event-card h3 { overflow-wrap: anywhere; }
+.event-card .by { font-style: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.on-insta { display: inline-flex; align-items: center; gap: 8px; margin-top: .6em; color: var(--oxblood); font-variant: all-small-caps; letter-spacing: .12em; font-size: 1.02rem; }
+.on-insta svg { width: 15px; height: 15px; transition: transform .2s; }
+.event-card:hover .on-insta svg { transform: translateX(4px); }
