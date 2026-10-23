@@ -150,14 +150,16 @@ collections:
       - name: instagram
         label: Instagram (Blogs & Events)
         file: content/instagram.json
-        description: "Posts from @bookclub_iitk appear on the Blogs & Events page by themselves (checked every 3 hours, through Behold). To keep a post off the website, add its Instagram link under Hidden posts."
+        description: "Posts from @bookclub_iitk appear on the Blogs & Events and home pages by themselves (checked every 3 hours through Instagram's official connection, with Behold as the backup). To keep a post off the website, add its Instagram link under Hidden posts."
         fields:
           - label: Hidden posts
             name: hidden
             widget: list
             required: false
             field: { label: Instagram post link, name: post, widget: string, hint: "e.g. https://www.instagram.com/p/DeDF8RIK0G2/" }
-          - { label: Behold feed address, name: feed, widget: string, hint: "From behold.so (JSON feed). Change only if the feed is recreated." }
+          - { label: Posts to keep, name: max_posts, widget: number, value_type: int, min: 6, max: 500, required: false, hint: "How many of the newest posts the website shows (default 60)." }
+          - { label: Instagram account ID, name: instagram_id, widget: string, required: false, hint: "The number from Graph API Explorer (instagram_business_account id). Do not change." }
+          - { label: Behold feed address (backup), name: feed, widget: string, hint: "From behold.so (JSON feed). Used when the official connection fails. Change only if the feed is recreated." }
           - { label: Live list address, name: live_url, widget: string, hint: "Where the website reads the latest posts. Do not change." }
 
       - name: genres

@@ -72,11 +72,24 @@ Setup, safety and day-to-day checks: [tools/shelf/README.md](tools/shelf/README.
 
 ## Instagram posts (Blogs & Events)
 
-[Behold](https://behold.so) is connected to @bookclub_iitk and publishes its newest posts as a JSON feed (address in
-`content/instagram.json`). Every 3 hours the website build runs `tools/instagram_feed.py`, which saves new posts to
-`data/instagram.json` with a copy of each picture in `assets/instagram/`, and commits them. Saved posts are kept, so
-the page builds an archive. The Blogs & Events page also loads `data/instagram.json` live from GitHub Pages, so the
-IITK copy shows new posts without an upload. Hide a post: admin panel → *Club pages → Instagram → Hidden posts*.
+Every 3 hours the website build runs `tools/instagram_feed.py`, which reads @bookclub_iitk's posts through
+Instagram's official API: the Instagram account linked to the club's Facebook Page (`instagram_id` in
+`content/instagram.json`), with a never-expiring **Page access token** kept only as the GitHub secret
+`INSTAGRAM_PAGE_TOKEN` (permissions: pages_show_list, pages_read_engagement, instagram_basic, business_management;
+read-only). The token is given only to that step, sent in a request header and never printed. If it is missing or
+refused, the build shows a warning in the Actions tab and falls back to [Behold](https://behold.so) (`feed`, the 6
+newest posts, refreshed daily).
+
+New posts are saved to `data/instagram.json` with a copy of each picture in `assets/instagram/`, and committed; the
+newest `max_posts` (default 60) are kept. The Blogs & Events and home pages also load `data/instagram.json` live from
+GitHub Pages, so the IITK copy shows new posts without an upload. Hide a post: admin panel → *Club pages → Instagram →
+Hidden posts*.
+
+**Renewing the Page token** (if the Facebook password changes, Page access is lost, or a new coordinator takes over):
+in Graph API Explorer (app *iitkclubbookwebsite*) get a User token with the four permissions above, extend it in the
+Access Token Debugger, query `me/accounts?fields=name,access_token,instagram_business_account`, check the Book Club
+Page's `access_token` shows *Expires: Never* in the debugger, and save it as the repository secret
+`INSTAGRAM_PAGE_TOKEN` (Settings → Secrets and variables → Actions). Never paste it anywhere else.
 
 ## Updating the admin panel
 

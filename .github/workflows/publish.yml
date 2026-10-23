@@ -36,8 +36,11 @@ jobs:
         run: pip install --require-hashes -r tools/requirements.txt
 
       - name: Fetch new Instagram posts
-        # Reads the Behold feed in content/instagram.json and saves new posts (caption, link, a copy of the
-        # picture) to data/instagram.json and assets/instagram/. Nothing changes if the feed can't be read.
+        # Reads @bookclub_iitk's posts through Instagram's official API with the Page token (a secret, given to
+        # this step only), or through Behold if that fails, and saves new posts (caption, link, a copy of the
+        # picture) to data/instagram.json and assets/instagram/. Nothing changes if neither can be read.
+        env:
+          INSTAGRAM_PAGE_TOKEN: ${{ secrets.INSTAGRAM_PAGE_TOKEN }}
         run: python tools/instagram_feed.py
 
       - name: Save new Instagram posts to the repository
