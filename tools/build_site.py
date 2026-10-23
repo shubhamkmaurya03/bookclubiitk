@@ -594,7 +594,7 @@ def build_home(site, posts, editions, stats, cat):
     body = f"""    <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <span class="eyebrow">Welcome to the SAC Book Club</span>
+          <span class="eyebrow">Welcome to the Book Club</span>
           <h1>Book Club <em>IIT Kanpur</em></h1>
           <p class="lede">{esc(h.get("lede"))}</p>
           <form class="hero-search" action="catalogue.html" method="get" role="search">
@@ -647,7 +647,7 @@ def build_home(site, posts, editions, stats, cat):
     </section>
 {home_shelves(cat)}{reviews}{feature}"""
     page(site, "index.html", "Home - Book Club IIT Kanpur",
-         f"The SAC Book Club of IIT Kanpur: a free collection of {stats['books_round']} books run by students. "
+         f"Book Club IIT Kanpur: a free collection of {stats['books_round']} books run by students. "
          "Search the catalogue, request a book, read reviews and our magazine Mellifluous.",
          "index.html", "home", body)
 
