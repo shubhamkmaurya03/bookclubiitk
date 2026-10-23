@@ -11,6 +11,7 @@ GitHub Action runs it automatically. The output in _site/ is plain HTML that
 can be uploaded to the IITK server as-is.
 """
 import datetime
+import hashlib
 import html
 import json
 import os
@@ -197,6 +198,12 @@ def nowrap_room(location):
 
 
 # ------------------------------------------------------------------ layout
+def ver(path):
+    """Link to a stylesheet or script with a version tag, so browsers fetch it again after every change."""
+    with open(os.path.join(ROOT, path), "rb") as fh:
+        return f"{path}?v={hashlib.sha1(fh.read()).hexdigest()[:10]}"
+
+
 def head(title, desc):
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -216,7 +223,7 @@ def head(title, desc):
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="{FONTS}">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="{ver("assets/css/style.css")}">
 </head>"""
 
 
@@ -297,7 +304,7 @@ def footer(site, quote_key, extra_scripts=""):
       </div>
     </div>
   </footer>
-  <script src="assets/js/main.js" defer></script>{extra_scripts}
+  <script src="{ver("assets/js/main.js")}" defer></script>{extra_scripts}
 </body>
 </html>
 """
@@ -442,7 +449,7 @@ def card_event(e):
           <span class="post-meta">Event · {when.day} {when.strftime("%B %Y")}</span>
           <h3>{esc(title)}</h3>
           {f'<span class="by">{esc(rest)}</span>' if rest else ''}
-          <span class="on-insta">View on Instagram {I["arrow"]}</span>
+          <span class="on-insta">View on Instagram {I["arrow"].replace("<svg ", '<svg width="15" height="15" ', 1)}</span>
         </a>"""
 
 
@@ -488,7 +495,7 @@ def build_blogs(site, posts):
 """
     page(site, "blogs.html", "Blogs & Events - Book Club IIT Kanpur",
          "Book reviews by members of Book Club IIT Kanpur, and the club's events from Instagram.",
-         "blogs.html", "blogs", body, '\n  <script src="assets/js/blogs.js" defer></script>')
+         "blogs.html", "blogs", body, f'\n  <script src="{ver("assets/js/blogs.js")}" defer></script>')
 
     for i, b in enumerate(posts):
         newer = posts[i - 1] if i > 0 else None
@@ -605,7 +612,12 @@ def build_home(site, posts, editions, stats, cat):
     first, rest = (about[0], about[1:]) if about else ("", [])
     rest_html = "\n          ".join(f"<p>{inline_md(p)}</p>" for p in rest)
     genres = "".join(f'<li><a href="{genre_href(g)}">{esc(g)}</a></li>' for g in h.get("genres", []))
-    latest = "\n        ".join(card_post(b) for b in posts[:4])
+    # Latest from the club: the 3 newest Instagram posts and the newest review (more reviews if posts are short).
+    events, live = load_instagram()
+    events = sorted(events, key=lambda e: e["time"], reverse=True)[:3]
+    picks = [card_event(e) for e in events] + [card_post(b) for b in posts[:4 - len(events)]]
+    latest = "\n        ".join(picks)
+    feed_attr = f' data-feed data-events="{len(events)}" data-live="{esc(live)}"' if events and live else ""
     feature = ""
     if editions:
         e = editions[0]
@@ -632,15 +644,15 @@ def build_home(site, posts, editions, stats, cat):
     <section class="section tight">
       <div class="wrap">
         <div class="section-head">
-          <div><span class="eyebrow">From the reading room</span><h2>Latest reviews</h2></div>
+          <div><span class="eyebrow">From the reading room</span><h2>{"Latest from the club" if events else "Latest reviews"}</h2></div>
           <a class="link-arrow" href="blogs.html">Blogs &amp; Events {I["arrow"]}</a>
         </div>
-        <div class="posts featured">
+        <div class="posts featured"{feed_attr}>
         {latest}
         </div>
       </div>
     </section>
-""" if posts else ""
+""" if picks else ""
     body = f"""    <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-copy">
@@ -699,7 +711,8 @@ def build_home(site, posts, editions, stats, cat):
     page(site, "index.html", "Home - Book Club IIT Kanpur",
          f"Book Club IIT Kanpur: a free collection of {stats['books_round']} books run by students. "
          "Search the catalogue, request a book, read reviews and our magazine Mellifluous.",
-         "index.html", "home", body)
+         "index.html", "home", body,
+         f'\n  <script src="{ver("assets/js/blogs.js")}" defer></script>' if feed_attr else "")
 
 
 # ------------------------------------------------------------------ rules
@@ -815,7 +828,7 @@ def build_catalogue(site, stats):
     </section>
 """
     page(site, "catalogue.html", "Catalogue - Book Club IIT Kanpur", "Search the Book Club IIT Kanpur catalogue by title, author or genre.",
-         "catalogue.html", "catalogue", body, '\n  <script src="assets/js/catalogue.js" defer></script>')
+         "catalogue.html", "catalogue", body, f'\n  <script src="{ver("assets/js/catalogue.js")}" defer></script>')
 
 
 # ------------------------------------------------------------------ request

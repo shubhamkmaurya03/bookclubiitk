@@ -1,4 +1,5 @@
-/* Blogs & Events: All / Reviews / Events filter, and the newest Instagram posts loaded live. */
+/* Blogs & Events: All / Reviews / Events filter, and the newest Instagram posts loaded live.
+   On the home page (data-events="3") it keeps just that many of the newest posts. */
 (function () {
   var grid = document.querySelector(".posts[data-feed]");
   if (!grid) return;
@@ -6,6 +7,7 @@
   var empty = document.querySelector(".feed-empty");
   var buttons = document.querySelectorAll(".feed-filter .chip");
   var live = grid.getAttribute("data-live");
+  var limit = parseInt(grid.getAttribute("data-events"), 10) || 0;
   var shows = ["all", "review", "event"];
   var show = shows.indexOf(new URLSearchParams(location.search).get("show")) !== -1
     ? new URLSearchParams(location.search).get("show") : "all";
@@ -39,7 +41,7 @@
 
   /* ---- live Instagram posts (same markup as tools/build_site.py card_event) ---- */
   if (!live || !window.fetch) return;
-  var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  var ARROW = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   var arrowEl = document.querySelector(".event-card .on-insta svg");
   if (arrowEl) ARROW = arrowEl.outerHTML;
 
@@ -60,7 +62,7 @@
     var date = when.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
     var badge = p.type === "video" ? '<span class="event-badge">▶ Video</span>' : p.type === "album" ? '<span class="event-badge">Album</span>' : "";
     return '<a class="post-card event-card" href="' + esc(p.url) + '" target="_blank" rel="noopener" data-kind="event" data-id="' +
-      esc(p.id) + '" data-date="' + esc(p.time.slice(0, 16)) + '"><div class="event-pic"><img src="' + esc(new URL(p.image, live).href) +
+      esc(p.id) + '" data-date="' + esc(p.time.slice(0, 16)) + '"><div class="event-pic"><img src="' + esc(new URL(p.image, new URL("..", live)).href) +
       '" alt="" loading="lazy" width="600" height="600">' + badge + '</div><span class="post-meta">Event · ' + esc(date) +
       '</span><h3>' + esc(t[0]) + '</h3>' + (t[1] ? '<span class="by">' + esc(t[1]) + '</span>' : "") +
       '<span class="on-insta">View on Instagram ' + ARROW + '</span></a>';
@@ -72,6 +74,12 @@
     .then(function (d) {
       var posts = d && Array.isArray(d.posts) ? d.posts.filter(valid) : [];
       if (!posts.length) return;                       // keep what the page already shows
+      if (limit) {                                      // home: the newest few, before the review
+        posts.sort(function (a, b) { return b.time.localeCompare(a.time); });
+        [].forEach.call(grid.querySelectorAll('[data-kind="event"]'), function (c) { grid.removeChild(c); });
+        grid.insertAdjacentHTML("afterbegin", posts.slice(0, limit).map(card).join(""));
+        return;
+      }
       var have = {}, keep = {};
       [].forEach.call(grid.querySelectorAll('[data-kind="event"]'), function (c) { have[c.getAttribute("data-id")] = c; });
       posts.forEach(function (p) {
